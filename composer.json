@@ -3,7 +3,7 @@
     "description": "Create interactive editor in Symfony",
     "type": "library",
     "license": "MIT",
-    "version": "1.0.21",
+    "version": "1.0.22",
     "autoload": {
         "psr-4": {
             "Wexample\\SymfonyStage\\": "src/"
@@ -16,6 +16,6 @@
         }
     ],
     "require": {
-        "wexample/symfony-design-system": "^1.0.22"
+        "wexample/symfony-design-system": "^1.0.23"
     }
 }
