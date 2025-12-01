@@ -1,21 +1,21 @@
 {
-    "name": "wexample/symfony-stage",
-    "description": "Create interactive editor in Symfony",
-    "type": "library",
-    "license": "MIT",
-    "version": "1.0.58",
-    "autoload": {
-        "psr-4": {
-            "Wexample\\SymfonyStage\\": "src/"
-        }
-    },
-    "authors": [
-        {
-            "name": "weeger",
-            "email": "romain.weeger@wexample.com"
-        }
-    ],
-    "require": {
-        "wexample/symfony-design-system": "^1.0.59"
+  "name": "wexample/symfony-stage",
+  "description": "Create interactive editor in Symfony",
+  "type": "library",
+  "license": "MIT",
+  "version": "1.0.58",
+  "autoload": {
+    "psr-4": {
+      "Wexample\\SymfonyStage\\": "src/"
     }
+  },
+  "authors": [
+    {
+      "name": "weeger",
+      "email": "romain.weeger@wexample.com"
+    }
+  ],
+  "require": {
+    "wexample/symfony-design-system": "^1.0.59"
+  }
 }
