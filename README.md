@@ -1,6 +1,6 @@
 # wexample/symfony-stage
 
-Version: 1.0.64
+Version: 1.0.65
 
 Create interactive editor in Symfony
 
