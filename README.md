@@ -1,6 +1,6 @@
 # wexample/symfony-stage
 
-Version: 1.0.66
+Version: 1.0.67
 
 Create interactive editor in Symfony
 
@@ -129,7 +129,7 @@ Refer to each package's documentation for specific version compatibility require
 
 ## Dependencies
 
-- wexample/symfony-design-system: 1.0.63
+- wexample/symfony-design-system: 1.0.64
 
 
 # About us
