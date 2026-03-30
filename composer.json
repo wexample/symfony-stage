@@ -16,6 +16,6 @@
     }
   ],
   "require": {
-    "wexample/symfony-design-system": "1.0.78"
+    "wexample/symfony-design-system": "1.0.79"
   }
 }
