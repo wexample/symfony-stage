@@ -16,6 +16,12 @@
     }
   ],
   "require": {
+    "php": ">=8.5",
     "wexample/symfony-design-system": ">=10.0.0"
+  },
+  "extra": {
+    "install": {
+      "bundle_env": "all"
+    }
   }
 }
