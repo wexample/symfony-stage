@@ -60,6 +60,7 @@ Visit the [Wexample Suite documentation](https://docs.wexample.com) for the comp
 
 - php: >=8.5
 - wexample/symfony-design-system: >=18.0.0
+- wexample/symfony-helpers: >=9.0.0
 
 ## Versioning & Compatibility Policy
 
