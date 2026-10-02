@@ -6,7 +6,7 @@ git:
 global:
   name: symfony_stage
   type: app
-  version: 1.0.109
+  version: 1.0.110
 wex:
   migration: 7
   version: 6.0.136
