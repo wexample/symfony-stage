@@ -1,6 +1,6 @@
 # symfony_stage
 
-Version: 1.0.114
+Version: 1.0.115
 
 `wexample/symfony-stage` is a Symfony bundle that provides the foundation for building interactive stage-style editors inside a Symfony application. It targets Symfony developers who already use the Wexample design system, registering the bundle's front-end assets against src/WexampleSymfonyStageBundle.php so the design system can resolve its CSS paths at build time.
 
@@ -59,7 +59,7 @@ Visit the [Wexample Suite documentation](https://docs.wexample.com) for the comp
 ## Dependencies
 
 - php: >=8.5
-- wexample/symfony-design-system: >=30.0.0
+- wexample/symfony-design-system: >=31.0.0
 - wexample/symfony-helpers: >=15.0.0
 
 ## Versioning & Compatibility Policy
