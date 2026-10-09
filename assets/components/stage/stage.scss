@@ -4,6 +4,8 @@
 // a pointer moving right moves it right whatever the language of the page,
 // and the elements stand where their own coordinates put them.
 @use '@wexample/symfony-design-system/css/shapes/block';
+@use '@wexample/symfony-design-system/css/mixins/transition';
+@use '../../css/shapes/stage-shape';
 
 .stage {
   position: relative;
@@ -19,7 +21,7 @@
   user-select: none;
 
   &:focus-visible {
-    box-shadow: inset 0 0 0 2px var(--accent-9);
+    box-shadow: inset 0 0 0 2px var(--color-selected);
   }
 
   &.is-panning {
@@ -59,7 +61,7 @@
   stroke-width: 2;
 
   &.is-selected {
-    stroke: var(--accent-9);
+    stroke: var(--color-selected);
   }
 }
 
@@ -73,9 +75,10 @@
   user-select: text;
   border-radius: var(--radius-box);
 
-  // Picked: a ring round it, the accent's — what is acted on next.
+  // Picked: a ring round it, in the colour of what is selected — what is
+  // acted on next.
   &.is-selected {
-    box-shadow: 0 0 0 2px var(--accent-9);
+    box-shadow: 0 0 0 2px var(--color-selected);
   }
 }
 
@@ -91,13 +94,14 @@
 // The rectangle drawn with Shift held, picking what it touches.
 .stage--marquee {
   position: absolute;
-  border: 1px solid var(--accent-9);
-  background: color-mix(in srgb, var(--accent-9) 12%, transparent);
+  border: 1px solid var(--color-selected);
+  background: color-mix(in srgb, var(--color-selected) 12%, transparent);
   pointer-events: none;
 }
 
 // A region under the elements: a band of the surface with its title in a head
-// of its own, written upwards along its left edge — a lane. The stage is the
+// of its own, written along its left edge the way the system sets text
+// sideways — a lane. The stage is the
 // frame: a line is drawn between two regions, none round them.
 .stage--region {
   --stage-region-head: 1.75rem;
@@ -117,9 +121,9 @@
   left: 0;
   width: var(--stage-region-head);
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  // A block, not a flex box: its text then wraps within the head's length.
+  display: block;
+  align-content: center;
   padding-block: var(--space-2);
   // Over the elements the surface slides under it.
   z-index: 1;
@@ -130,8 +134,7 @@
   line-height: 1.1;
   text-align: center;
   // A long title takes a second line rather than being cut: two fit the head.
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
+  writing-mode: var(--writing-mode-vertical);
   overflow: hidden;
 }
 
@@ -152,7 +155,7 @@
 .stage--element,
 .stage--link,
 .stage--link-label {
-  transition: opacity 0.15s ease;
+  @include transition.colors(1);
 }
 
 .stage .is-dimmed {
@@ -160,10 +163,20 @@
 }
 
 .stage--link.is-highlighted {
-  stroke: var(--accent-9);
+  stroke: var(--color-selected);
   stroke-width: 3;
 }
 
 .stage--element.is-highlighted {
-  box-shadow: 0 0 0 3px var(--accent-9);
+  box-shadow: 0 0 0 3px var(--color-selected);
+}
+
+// The kinds of line a page may give a link (`kind`): one that holds under a
+// condition, dashed; one that is taken when no other is, heavier.
+.stage--link--dashed {
+  stroke-dasharray: 6 4;
+}
+
+.stage--link--strong {
+  stroke-width: 2.5;
 }

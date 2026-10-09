@@ -1,0 +1,127 @@
+// The figures a diagram is drawn with, laid in the elements of a stage: a box
+// that does something, a circle where something starts, waits or ends, a
+// diamond where the way forks. What they mean is the page's — a process, a
+// workflow, a plan —; how they look is said here once, on the tokens of the
+// design system, so a skin draws them as it draws the rest.
+//
+//   stage-shape--box      a block with a mark in its corner and its words
+//   stage-shape--circle   a ring, a glyph in it, its words under it
+//   stage-shape--diamond  a square turned, a glyph in it, its words under it
+//   stage-shape--thick    its edge heavier: an end, a box holding more
+//   stage-shape--double   its edge doubled: a wait, an interruption
+//   stage-shape--tone-*   its edge in a tone: success, warning, error, info
+//
+// physical: none — the words under a figure are centred, the same both ways.
+@use '@wexample/symfony-design-system/css/shapes/block';
+
+.stage-shape {
+  --stage-shape-color: var(--border-color-strong);
+  --stage-shape-stroke: 2px;
+  --stage-shape-style: solid;
+
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  color: var(--text-color-default);
+}
+
+.stage-shape--thick {
+  --stage-shape-stroke: 4px;
+}
+
+.stage-shape--double {
+  --stage-shape-stroke: 4px;
+  --stage-shape-style: double;
+}
+
+@each $tone in (success, warning, error, info) {
+  .stage-shape--tone-#{$tone} {
+    --stage-shape-color: var(--#{$tone}-9);
+  }
+}
+
+// --- The box: a block, its edge drawn ---
+
+.stage-shape--box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3) var(--space-2) var(--space-2);
+  border: var(--stage-shape-stroke) var(--stage-shape-style) var(--stage-shape-color);
+  text-align: center;
+}
+
+// What the box is, in its corner.
+.stage-shape--mark {
+  position: absolute;
+  inset-block-start: var(--space-1);
+  inset-inline-start: var(--space-1);
+  color: var(--text-color-muted);
+  font-size: var(--font-size-2);
+  line-height: 1;
+}
+
+.stage-shape--label {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--font-size-2);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+// --- The circle and the diamond: a figure, its words under it ---
+
+.stage-shape--figure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  border: var(--stage-shape-stroke) var(--stage-shape-style) var(--stage-shape-color);
+  background: var(--surface-zone);
+  color: var(--text-color-muted);
+}
+
+.stage-shape--circle .stage-shape--figure {
+  border-radius: 50%;
+}
+
+// The diamond is the square turned, inscribed in the element; its glyph is
+// turned back upright.
+.stage-shape--diamond .stage-shape--figure {
+  width: 70.7%;
+  height: 70.7%;
+  margin: 14.65%;
+  border-radius: var(--radius-control);
+  transform: rotate(45deg);
+
+  > .stage-shape--glyph {
+    transform: rotate(-45deg);
+  }
+}
+
+.stage-shape--glyph {
+  font-size: var(--font-size-3);
+  line-height: 1;
+}
+
+.stage-shape--caption {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-1));
+  inset-inline: -4rem;
+  color: var(--text-color-muted);
+  font-size: var(--font-size-1);
+  text-align: center;
+}
+
+// The stage rings a picked element with the element's own corners: a circle
+// is ringed round, a diamond's element closely.
+.stage--element:has(> .stage-shape--circle) {
+  border-radius: 50%;
+}
+
+.stage--element:has(> .stage-shape--diamond) {
+  border-radius: var(--radius-control);
+}
