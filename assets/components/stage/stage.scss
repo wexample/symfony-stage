@@ -97,13 +97,17 @@
 }
 
 // A region under the elements: a band of the surface with its title in a head
-// of its own, written upwards along its left edge — a lane.
+// of its own, written upwards along its left edge — a lane. The stage is the
+// frame: a line is drawn between two regions, none round them.
 .stage--region {
   --stage-region-head: 1.75rem;
   position: absolute;
   box-sizing: border-box;
-  border: 1px solid var(--border-color-discreet);
   pointer-events: none;
+}
+
+.stage--region + .stage--region {
+  border-top: 1px solid var(--border-color-discreet);
 }
 
 .stage--region-title {
@@ -115,7 +119,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-right: 1px solid var(--border-color-discreet);
   background: var(--surface-shell);
   color: var(--text-color-muted);
   font-size: var(--font-size-2);
