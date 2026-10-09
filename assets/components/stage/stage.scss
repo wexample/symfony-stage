@@ -1,0 +1,95 @@
+// A surface the pointer moves, and the elements laid on it.
+//
+// physical-file: the surface is placed in screen coordinates by the script —
+// a pointer moving right moves it right whatever the language of the page,
+// and the elements stand where their own coordinates put them.
+@use '@wexample/symfony-design-system/css/shapes/block';
+
+.stage {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  min-height: 12rem;
+  background-color: var(--surface-zone);
+  border-radius: var(--zone-radius, var(--radius-box));
+  outline: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--accent-9);
+  }
+
+  &.is-panning {
+    cursor: grabbing;
+  }
+}
+
+// The grid: dots a step apart, moving with the surface.
+.stage--grid {
+  background-image: radial-gradient(circle, var(--border-color-default) 1px, transparent 1.5px);
+  background-size: var(--stage-grid) var(--stage-grid);
+}
+
+.stage--world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+}
+
+.stage--links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.stage--link {
+  fill: none;
+  stroke: var(--border-color-strong);
+  stroke-width: 2;
+
+  &.is-selected {
+    stroke: var(--accent-9);
+  }
+}
+
+.stage--arrow {
+  fill: var(--border-color-strong);
+}
+
+.stage--element {
+  position: absolute;
+  cursor: default;
+  user-select: text;
+  border-radius: var(--radius-box);
+
+  // Picked: a ring round it, the accent's — what is acted on next.
+  &.is-selected {
+    box-shadow: 0 0 0 2px var(--accent-9);
+  }
+}
+
+.stage:not(.stage--readonly) .stage--element {
+  cursor: move;
+}
+
+.stage--element-default {
+  height: 100%;
+  overflow: hidden;
+}
+
+// The rectangle drawn with Shift held, picking what it touches.
+.stage--marquee {
+  position: absolute;
+  border: 1px solid var(--accent-9);
+  background: color-mix(in srgb, var(--accent-9) 12%, transparent);
+  pointer-events: none;
+}

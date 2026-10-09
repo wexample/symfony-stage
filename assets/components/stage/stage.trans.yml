@@ -1,0 +1,5 @@
+en:
+  label: "Stage — drag to move it, Shift and drag to pick several elements; arrows move the picked ones, Delete removes them, Ctrl+Z undoes"
+
+fr:
+  label: "Scène — glisser pour la déplacer, Maj et glisser pour choisir plusieurs éléments ; les flèches déplacent les éléments choisis, Suppr les retire, Ctrl+Z annule"

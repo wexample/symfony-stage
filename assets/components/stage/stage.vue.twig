@@ -1,0 +1,50 @@
+{%- extends '@WexampleSymfonyDesignSystemBundle/components/_abstract/vue/vue.vue.twig' -%}
+
+{%- block vue_config -%}
+    {{ parent() }}
+    {{ trans_js(render_pass, 'WexampleSymfonyStageBundle.components.stage.stage::*') }}
+{%- endblock -%}
+
+{%- block vue_body -%}
+    <div ref="root"
+         class="stage"
+         :class="{ 'stage--readonly': readonly, 'stage--grid': grid > 0, 'is-panning': gesture && gesture.type === 'pan' && gesture.moved }"
+         :style="stageStyle"
+         tabindex="0"
+         role="application"
+         :aria-label="resolvedLabel"
+         @pointerdown="onPointerDown"
+         @wheel="onWheel">
+        <div class="stage--world" :style="worldStyle">
+            {#- The links under the elements, in the same coordinates: an SVG of
+                no size of its own, drawing past its box. -#}
+            <svg class="stage--links" aria-hidden="true">
+                <defs>
+                    <marker :id="markerId" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                        <path d="M 0 0 L 10 5 L 0 10 z" class="stage--arrow"></path>
+                    </marker>
+                </defs>
+                <path v-for="link in drawnLinks"
+                      :key="link.id"
+                      class="stage--link"
+                      :class="{ 'is-selected': isLinkSelected(link) }"
+                      :d="linkPath(link)"
+                      :marker-end="'url(#' + markerId + ')'"></path>
+            </svg>
+
+            <div v-for="item in items"
+                 :key="item.id"
+                 class="stage--element"
+                 :class="{ 'is-selected': isSelected(item) }"
+                 :style="elementStyle(item)"
+                 :data-stage-element="item.id">
+                <slot name="element" :element="item" :selected="isSelected(item)">
+                    <div class="block block--card block--padded stage--element-default">[[ item.title || item.id ]]</div>
+                </slot>
+            </div>
+        </div>
+
+        <div v-if="marquee" class="stage--marquee" :style="marqueeStyle"></div>
+        <slot name="overlay"></slot>
+    </div>
+{%- endblock -%}
