@@ -4,7 +4,7 @@
 // workflow, a plan —; how they look is said here once, on the tokens of the
 // design system, so a skin draws them as it draws the rest.
 //
-//   stage-shape--box      a block with a mark in its corner and its words
+//   stage-shape--box      a block (its mark in its corner, block--mark) and its words
 //   stage-shape--circle   a ring, a glyph in it, its words under it
 //   stage-shape--diamond  a square turned, a glyph in it, its words under it
 //   stage-shape--thick    its edge heavier: an end, a box holding more
@@ -50,16 +50,6 @@
   padding: var(--space-3) var(--space-2) var(--space-2);
   border: var(--stage-shape-stroke) var(--stage-shape-style) var(--stage-shape-color);
   text-align: center;
-}
-
-// What the box is, in its corner.
-.stage-shape--mark {
-  position: absolute;
-  inset-block-start: var(--space-1);
-  inset-inline-start: var(--space-1);
-  color: var(--text-color-muted);
-  font-size: var(--font-size-2);
-  line-height: 1;
 }
 
 .stage-shape--label {
