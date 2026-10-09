@@ -119,6 +119,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  // Over the elements the surface slides under it.
+  z-index: 1;
   background: var(--surface-shell);
   color: var(--text-color-muted);
   font-size: var(--font-size-2);

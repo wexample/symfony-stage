@@ -23,7 +23,7 @@
                  class="stage--region"
                  :class="region.kind ? 'stage--region--' + region.kind : null"
                  :style="regionStyle(region)">
-                <span v-if="region.title" class="stage--region-title">[[ region.title ]]</span>
+                <span v-if="region.title" class="stage--region-title" :style="regionTitleStyle(region)">[[ region.title ]]</span>
             </div>
 
             {#- The links under the elements, in the same coordinates: an SVG of

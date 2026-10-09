@@ -248,6 +248,15 @@ export default {
       };
     },
 
+    // A region's title stays against the stage's left edge while the surface
+    // moves past it, as long as the region is in view: a lane followed far
+    // along is still named.
+    regionTitleStyle(region) {
+      const behind = Math.max(0, -(this.pan.x + region.x));
+
+      return behind ? { left: `${Math.max(0, Math.min(behind, region.width - 32))}px` } : null;
+    },
+
     elementStyle(item) {
       return {
         left: `${item.x}px`,
@@ -403,9 +412,22 @@ export default {
 
     // A wheel moves the surface; on a line of its own, either way of the
     // wheel moves it along that line.
+    // Shift turns the wheel sideways. On a bounded surface free both ways, the
+    // wheel moves it down while there is more below, and sideways once there
+    // is not — a diagram as tall as the stage reads as a timeline does.
     onWheel(event) {
-      const dx = this.axis === 'x' ? (event.deltaX || event.deltaY) : event.deltaX;
-      const dy = this.axis === 'x' ? 0 : event.deltaY;
+      let dx = event.deltaX;
+      let dy = event.deltaY;
+
+      if (event.shiftKey && !dx) {
+        [dx, dy] = [dy, 0];
+      }
+
+      if (this.axis === 'x') {
+        [dx, dy] = [dx || dy, 0];
+      } else if (this.bounded && dy && !dx && this.clampPan({ x: this.pan.x, y: this.pan.y - dy }).y === this.pan.y) {
+        [dx, dy] = [dy, 0];
+      }
 
       if (!dx && !dy) {
         return;
@@ -422,10 +444,14 @@ export default {
       this.pan = pan;
     },
 
-    // Within what the stage holds, when bounded: a surface narrower than the
-    // stage stays at its start.
+    // Within what the stage holds, when bounded — its elements, its regions,
+    // the routes of its links: a surface smaller than the stage stays at its
+    // start.
     clampPan(pan) {
-      const bounds = this.bounded ? stageGeometryBounds([...this.items, ...this.regions].map((box) => ({ ...box, height: box.height || 0 }))) : null;
+      const points = this.drawnLinks.flatMap((link) => link.points ?? []).map(([x, y]) => ({ x, y, width: 0, height: 0 }));
+      const bounds = this.bounded
+        ? stageGeometryBounds([...this.items, ...this.regions, ...points].map((box) => ({ ...box, height: box.height || 0 })))
+        : null;
 
       if (!bounds) {
         return pan;
