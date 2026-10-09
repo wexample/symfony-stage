@@ -5,6 +5,7 @@
 // and the elements stand where their own coordinates put them.
 @use '@wexample/symfony-design-system/css/shapes/block';
 @use '@wexample/symfony-design-system/css/mixins/transition';
+@use '@wexample/symfony-design-system/css/mixins/writing';
 @use '../../css/shapes/stage-shape';
 
 .stage {
@@ -100,8 +101,8 @@
 }
 
 // A region under the elements: a band of the surface with its title in a head
-// of its own, written along its left edge the way the system sets text
-// sideways — a lane. The stage is the
+// of its own, read upwards along its left edge, as the label of a band reads —
+// a lane. The stage is the
 // frame: a line is drawn between two regions, none round them.
 .stage--region {
   --stage-region-head: 1.75rem;
@@ -134,7 +135,7 @@
   line-height: 1.1;
   text-align: center;
   // A long title takes a second line rather than being cut: two fit the head.
-  writing-mode: var(--writing-mode-vertical);
+  @include writing.vertical-text(up);
   overflow: hidden;
 }
 
