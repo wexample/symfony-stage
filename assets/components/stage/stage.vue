@@ -4,7 +4,9 @@ import {
   stageGeometryBoxFromCorners,
   stageGeometryBounds,
   stageGeometryIntersects,
+  stageGeometryLabelPoint,
   stageGeometryLinkPath,
+  stageGeometryPolyline,
   stageGeometrySnap
 } from '../../js/Helper/StageGeometry';
 import { buildUniqueId } from '@wexample/js-helpers/Helper/Id';
@@ -33,6 +35,13 @@ const NUDGE_FAR = 5;
 // given the element and whether it is selected, draws it as any markup — a
 // card, a form, a chart.
 //
+// A link may carry its own route (`points`, `[[x, y], …]`), a `label` drawn on
+// it and a `kind` the page styles it by (`stage--link--<kind>`). Regions
+// (`regions`, `{ id, x, y, width, height, title, kind }`) are drawn under
+// everything — the lanes of a process, the days of a planning —, a title in
+// their head. `highlighted` lights some elements and links and dims the rest:
+// a path walked, a search.
+//
 // `axis: 'x'` keeps the surface on its line, as a timeline is: it moves
 // sideways only. The surface is not zoomed.
 export default {
@@ -46,6 +55,15 @@ export default {
       default: () => []
     },
     links: {
+      type: Array,
+      default: () => []
+    },
+    regions: {
+      type: Array,
+      default: () => []
+    },
+    // Ids of elements and links lit; the others dimmed while any is.
+    highlighted: {
       type: Array,
       default: () => []
     },
@@ -193,6 +211,35 @@ export default {
       return this.selection.includes(link.from) && this.selection.includes(link.to);
     },
 
+    // Lit, dimmed, or neither when nothing is lit.
+    lightClass(id) {
+      if (!this.highlighted.length) {
+        return null;
+      }
+
+      return this.highlighted.includes(id) ? 'is-highlighted' : 'is-dimmed';
+    },
+
+    linkLabelPoint(link) {
+      return stageGeometryLabelPoint(link.points ?? this.defaultLinkPoints(link));
+    },
+
+    defaultLinkPoints(link) {
+      const from = this.byId[link.from];
+      const to = this.byId[link.to];
+
+      return [[from.x + from.width, from.y + (from.height || 0) / 2], [to.x, to.y + (to.height || 0) / 2]];
+    },
+
+    regionStyle(region) {
+      return {
+        left: `${region.x}px`,
+        top: `${region.y}px`,
+        width: `${region.width}px`,
+        height: `${region.height}px`
+      };
+    },
+
     elementStyle(item) {
       return {
         left: `${item.x}px`,
@@ -202,8 +249,22 @@ export default {
       };
     },
 
+    // A route of its own is followed while neither end has moved since it
+    // was drawn; once one has, the link is drawn afresh between them.
     linkPath(link) {
-      return stageGeometryLinkPath(this.byId[link.from], this.byId[link.to]);
+      return link.points && !this.movedSinceRouted(link)
+        ? stageGeometryPolyline(link.points)
+        : stageGeometryLinkPath(this.byId[link.from], this.byId[link.to]);
+    },
+
+    // Moving under the pointer right now: the route waits for the drop to be
+    // dropped, and the link follows the element meanwhile.
+    movedSinceRouted(link) {
+      const moving = this.gesture?.type === 'move' && this.gesture.moved
+        ? this.gesture.origins.map((origin) => origin.id)
+        : [];
+
+      return moving.includes(link.from) || moving.includes(link.to);
     },
 
     // Where a pointer stands on the surface rather than on the screen.
@@ -320,6 +381,7 @@ export default {
       }
 
       if (gesture.type === 'move' && gesture.moved) {
+        this.forgetRoutes(gesture.origins.map((origin) => origin.id));
         this.commit(gesture.before);
       } else if (gesture.type === 'pan' && !gesture.moved) {
         // A press on the surface that went nowhere: nothing is picked any more.
@@ -412,7 +474,19 @@ export default {
         this.byId[id].y += y * step;
       });
 
+      this.forgetRoutes(this.selection);
+
       this.commit(before);
+    },
+
+    // A link's own route no longer fits once an end has moved: it is dropped,
+    // and the link drawn afresh between its ends.
+    forgetRoutes(ids) {
+      this.edges.forEach((link) => {
+        if (link.points && (ids.includes(link.from) || ids.includes(link.to))) {
+          delete link.points;
+        }
+      });
     },
 
     removeSelected() {

@@ -16,6 +16,16 @@
          @pointerdown="onPointerDown"
          @wheel="onWheel">
         <div class="stage--world" :style="worldStyle">
+            {#- Under everything: the regions — lanes, days —, a title in their
+                head. -#}
+            <div v-for="region in regions"
+                 :key="region.id"
+                 class="stage--region"
+                 :class="region.kind ? 'stage--region--' + region.kind : null"
+                 :style="regionStyle(region)">
+                <span v-if="region.title" class="stage--region-title">[[ region.title ]]</span>
+            </div>
+
             {#- The links under the elements, in the same coordinates: an SVG of
                 no size of its own, drawing past its box. -#}
             <svg class="stage--links" aria-hidden="true">
@@ -27,15 +37,22 @@
                 <path v-for="link in drawnLinks"
                       :key="link.id"
                       class="stage--link"
-                      :class="{ 'is-selected': isLinkSelected(link) }"
+                      :class="[link.kind ? 'stage--link--' + link.kind : null, lightClass(link.id), { 'is-selected': isLinkSelected(link) }]"
                       :d="linkPath(link)"
                       :marker-end="'url(#' + markerId + ')'"></path>
             </svg>
 
+            {#- A link's word, where its line has room for it. -#}
+            <span v-for="link in drawnLinks.filter((link) => link.label)"
+                  :key="link.id + '-label'"
+                  class="stage--link-label"
+                  :class="lightClass(link.id)"
+                  :style="{ left: linkLabelPoint(link).x + 'px', top: linkLabelPoint(link).y + 'px' }">[[ link.label ]]</span>
+
             <div v-for="item in items"
                  :key="item.id"
                  class="stage--element"
-                 :class="{ 'is-selected': isSelected(item) }"
+                 :class="[item.kind ? 'stage--element--' + item.kind : null, lightClass(item.id), { 'is-selected': isSelected(item) }]"
                  :style="elementStyle(item)"
                  :data-stage-element="item.id">
                 <slot name="element" :element="item" :selected="isSelected(item)">

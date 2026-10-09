@@ -51,6 +51,32 @@ export function stageGeometryBounds(boxes: StageBox[]): StageBox | null {
   return { x: left, y: top, width: right - left, height: bottom - top };
 }
 
+// The path through given points — a route drawn by the page or read from a
+// file —, straight from one to the next.
+export function stageGeometryPolyline(points: [number, number][]): string {
+  return points.map(([x, y], index) => `${index ? 'L' : 'M'} ${x} ${y}`).join(' ');
+}
+
+// Where a label of a line through these points stands: the middle of its
+// longest stretch, which is where there is room for a word.
+export function stageGeometryLabelPoint(points: [number, number][]): StagePoint {
+  let best = { x: points[0][0], y: points[0][1] };
+  let longest = -1;
+
+  for (let i = 1; i < points.length; i++) {
+    const [ax, ay] = points[i - 1];
+    const [bx, by] = points[i];
+    const length = Math.hypot(bx - ax, by - ay);
+
+    if (length > longest) {
+      longest = length;
+      best = { x: (ax + bx) / 2, y: (ay + by) / 2 };
+    }
+  }
+
+  return best;
+}
+
 // The path of a link read left to right — a step leading to the next, as on
 // a timeline: out of the right edge of one box, into the left edge of the
 // other, bent so that it leaves and arrives level. Going backwards, it loops

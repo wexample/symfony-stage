@@ -47,6 +47,8 @@
   left: 0;
   width: 1px;
   height: 1px;
+  // The reset holds an svg to its parent's width, and the world has none.
+  max-width: none;
   overflow: visible;
   pointer-events: none;
 }
@@ -92,4 +94,68 @@
   border: 1px solid var(--accent-9);
   background: color-mix(in srgb, var(--accent-9) 12%, transparent);
   pointer-events: none;
+}
+
+// A region under the elements: a band of the surface with its title in a head
+// of its own, written upwards along its left edge — a lane.
+.stage--region {
+  --stage-region-head: 1.75rem;
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color-discreet);
+  pointer-events: none;
+}
+
+.stage--region-title {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--stage-region-head);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border-color-discreet);
+  background: var(--surface-shell);
+  color: var(--text-color-muted);
+  font-size: var(--font-size-2);
+  font-weight: var(--font-weight-strong);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// A link's word, on its line.
+.stage--link-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-control);
+  background: var(--surface-zone);
+  color: var(--text-color-muted);
+  font-size: var(--font-size-1);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+// Lit and dimmed: what a walk or a search points at, and the rest.
+.stage--element,
+.stage--link,
+.stage--link-label {
+  transition: opacity 0.15s ease;
+}
+
+.stage .is-dimmed {
+  opacity: 0.25;
+}
+
+.stage--link.is-highlighted {
+  stroke: var(--accent-9);
+  stroke-width: 3;
+}
+
+.stage--element.is-highlighted {
+  box-shadow: 0 0 0 3px var(--accent-9);
 }
