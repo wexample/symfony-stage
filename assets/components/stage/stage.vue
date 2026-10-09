@@ -43,7 +43,11 @@ const NUDGE_FAR = 5;
 // a path walked, a search.
 //
 // `axis: 'x'` keeps the surface on its line, as a timeline is: it moves
-// sideways only. The surface is not zoomed.
+// sideways only. `bounded` stops it where what it holds does, its first
+// element or region at the edge, its last one at the other: nothing is ever
+// drawn past them to go and look at. The surface is not zoomed.
+//
+// Read only, the stage takes no focus: its keys all change what it holds.
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-stage',
 
@@ -78,6 +82,10 @@ export default {
       default: 20
     },
     readonly: {
+      type: Boolean,
+      default: false
+    },
+    bounded: {
       type: Boolean,
       default: false
     },
@@ -284,7 +292,9 @@ export default {
       const elementEl = event.target.closest('[data-stage-element]');
       const additive = event.ctrlKey || event.metaKey || event.shiftKey;
 
-      this.$refs.root.focus({ preventScroll: true });
+      if (!this.readonly) {
+        this.$refs.root.focus({ preventScroll: true });
+      }
 
       if (elementEl) {
         const id = elementEl.dataset.stageElement;
@@ -359,7 +369,7 @@ export default {
       gesture.moved = true;
 
       if (gesture.type === 'pan') {
-        this.pan = { x: gesture.origin.x + dx, y: this.axis === 'x' ? 0 : gesture.origin.y + dy };
+        this.pan = this.clampPan({ x: gesture.origin.x + dx, y: this.axis === 'x' ? 0 : gesture.origin.y + dy });
       } else if (gesture.type === 'move') {
         gesture.origins.forEach((origin) => {
           const item = this.byId[origin.id];
@@ -401,8 +411,32 @@ export default {
         return;
       }
 
+      const pan = this.clampPan({ x: this.pan.x - dx, y: this.pan.y - dy });
+
+      // Against a bound, the wheel goes on to scroll the page.
+      if (pan.x === this.pan.x && pan.y === this.pan.y) {
+        return;
+      }
+
       event.preventDefault();
-      this.pan = { x: this.pan.x - dx, y: this.pan.y - dy };
+      this.pan = pan;
+    },
+
+    // Within what the stage holds, when bounded: a surface narrower than the
+    // stage stays at its start.
+    clampPan(pan) {
+      const bounds = this.bounded ? stageGeometryBounds([...this.items, ...this.regions].map((box) => ({ ...box, height: box.height || 0 }))) : null;
+
+      if (!bounds) {
+        return pan;
+      }
+
+      const clamp = (value, start, size, view) => Math.min(-start, Math.max(view - (start + size), value));
+
+      return {
+        x: clamp(pan.x, bounds.x, bounds.width, this.$refs.root.clientWidth),
+        y: this.axis === 'x' ? pan.y : clamp(pan.y, bounds.y, bounds.height, this.$refs.root.clientHeight)
+      };
     },
 
     // --- What changes the stage, written down to be undone.

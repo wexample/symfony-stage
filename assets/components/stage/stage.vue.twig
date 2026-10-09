@@ -10,7 +10,7 @@
          class="stage"
          :class="{ 'stage--readonly': readonly, 'stage--grid': grid > 0, 'is-panning': gesture && gesture.type === 'pan' && gesture.moved }"
          :style="stageStyle"
-         tabindex="0"
+         :tabindex="readonly ? null : 0"
          role="application"
          :aria-label="resolvedLabel"
          @pointerdown="onPointerDown"
