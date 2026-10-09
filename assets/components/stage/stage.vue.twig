@@ -17,13 +17,13 @@
          @wheel="onWheel">
         <div class="stage--world" :style="worldStyle">
             {#- Under everything: the regions — lanes, days —, a title in their
-                head. -#}
+                head; an empty title draws the head alone, none draws none. -#}
             <div v-for="region in regions"
                  :key="region.id"
                  class="stage--region"
                  :class="region.kind ? 'stage--region--' + region.kind : null"
                  :style="regionStyle(region)">
-                <span v-if="region.title" class="stage--region-title" :style="regionTitleStyle(region)">[[ region.title ]]</span>
+                <span v-if="region.title != null" class="stage--region-title" :style="regionTitleStyle(region)">[[ region.title ]]</span>
             </div>
 
             {#- The links under the elements, in the same coordinates: an SVG of
