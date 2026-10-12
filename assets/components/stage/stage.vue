@@ -176,13 +176,19 @@ export default {
       priority: 10,
       enabled: (event) => this.hasFocus() && enabled(event)
     });
-    const command = (event) => (event.ctrlKey || event.metaKey) && !event.altKey;
+    // ⌘ on a Mac, Ctrl elsewhere: `Mod`.
+    const shortcut = (combo, callback) => keyboard.registerShortcut(this, combo, callback, {
+      preventDefault: true,
+      priority: 10,
+      enabled: () => this.hasFocus()
+    });
 
     ['Delete', 'Backspace'].forEach((key) => on(key, () => this.removeSelected()));
     on('Escape', () => this.select([]));
-    ['a', 'A'].forEach((key) => on(key, () => this.select(this.items.map((item) => item.id)), command));
-    ['z', 'Z'].forEach((key) => on(key, (event) => (event.shiftKey ? this.redo() : this.undo()), command));
-    ['y', 'Y'].forEach((key) => on(key, () => this.redo(), command));
+    shortcut('Mod+A', () => this.select(this.items.map((item) => item.id)));
+    shortcut('Mod+Z', () => this.undo());
+    shortcut('Mod+Shift+Z', () => this.redo());
+    shortcut('Mod+Y', () => this.redo());
 
     [['ArrowLeft', -1, 0], ['ArrowRight', 1, 0], ['ArrowUp', 0, -1], ['ArrowDown', 0, 1]].forEach(([key, x, y]) => {
       on(key, (event) => this.nudge(x, y, event.shiftKey), () => this.selection.length > 0);
