@@ -9,3 +9,60 @@ zh:
 
 ar:
   label: 'المرحلة - اسحب لتحريكها، اضغط على Shift واسحب لاختيار عدة عناصر؛ الأسهم لتحريك العناصر المحددة، وDelete لإزالتها، وCtrl+Z للتراجع'
+
+hi:
+  label: 'स्टेज - इसे खींचकर स्थानांतरित करें, Shift दबाकर और खींचकर कई तत्व चुनें; तीर चुने हुए तत्वों को स्थानांतरित करते हैं, Delete उन्हें हटाता है, Ctrl+Z पूर्ववत करता है'
+
+he:
+  label: 'במה — גרור כדי להזיז, Shift וגרירה כדי לבחור מספר פריטים; חצים מזיזים את הנבחרים, מחק מסיר אותם, Ctrl+Z מבטל'
+
+fa:
+  label: 'مرحله — برای جابجایی بکشید، Shift و بکشید تا چندین عنصر را انتخاب کنید؛ پیکان‌ها موارد انتخاب شده را جابجا می‌کنند، Delete آنها را حذف می‌کند، Ctrl+Z عمل را برمی‌گرداند'
+
+ur:
+  label: 'اسٹیج - اسے منتقل کرنے کے لیے گھسیٹیں، متعدد عناصر چننے کے لیے Shift کے ساتھ گھسیٹیں؛ تیر چنے ہوئے عناصر کو منتقل کرتے ہیں، Delete انہیں ہٹا دیتا ہے، Ctrl+Z واپس لے لیتا ہے'
+
+ja:
+  label: 'ステージ — ドラッグして移動、Shiftを押しながらドラッグで複数の要素を選択; 矢印キーで選択したものを移動、Deleteで削除、Ctrl+Zで元に戻す'
+
+ko:
+  label: '단계 — 드래그하여 이동하고, Shift를 누른 채 드래그하여 여러 요소를 선택합니다; 화살표는 선택한 요소를 이동시키고, Delete는 제거하며, Ctrl+Z는 실행 취소합니다.'
+
+bn:
+  label: 'পর্যায় — সরানোর জন্য টেনে নিয়ে যান, একাধিক উপাদান বাছাই করতে Shift চাপুন এবং টেনে নিয়ে যান; তীরগুলি নির্বাচিত উপাদানগুলিকে সরিয়ে দেয়, Delete মুছে ফেলে, Ctrl+Z পূর্বাবস্থায় ফিরিয়ে নিয়ে যায়'
+
+th:
+  label: 'เวที — ลากเพื่อย้าย, กด Shift และลากเพื่อเลือกหลายองค์ประกอบ; ลูกศรย้ายองค์ประกอบที่เลือก, Delete ลบออก, Ctrl+Z ยกเลิก'
+
+de:
+  label: 'Stufe — ziehen, um sie zu bewegen, Shift und ziehen, um mehrere Elemente auszuwählen; Pfeile bewegen die ausgewählten, Löschen entfernt sie, Ctrl+Z macht rückgängig'
+
+fi:
+  label: 'Vaihe — vedä siirtääksesi sitä, Shift ja vedä valitaksesi useita elementtejä; nuolilla siirrät valittuja, Poista poistaa ne, Ctrl+Z peruuttaa'
+
+ru:
+  label: 'Этап — перетащите, чтобы переместить, Shift и перетаскивание для выбора нескольких элементов; стрелки перемещают выбранные, Delete удаляет их, Ctrl+Z отменяет'
+
+pl:
+  label: 'Etap — przeciągnij, aby go przenieść, przytrzymaj Shift i przeciągnij, aby zaznaczyć kilka elementów; strzałki przesuwają zaznaczone, Delete je usuwa, Ctrl+Z cofa'
+
+es:
+  label: 'Escenario — arrastra para moverlo, Shift y arrastra para seleccionar varios elementos; las flechas mueven los seleccionados, Supr los elimina, Ctrl+Z deshace'
+
+it:
+  label: 'Fase — trascina per spostarla, Shift e trascina per selezionare più elementi; le frecce spostano quelli selezionati, Elimina li rimuove, Ctrl+Z annulla'
+
+pt_BR:
+  label: 'Estágio — arraste para mover, Shift e arraste para selecionar vários elementos; as setas movem os selecionados, Delete os remove, Ctrl+Z desfaz'
+
+tr:
+  label: 'Aşama — taşımak için sürükleyin, birden fazla öğe seçmek için Shift ile sürükleyin; oklar seçilenleri taşır, Sil bunları kaldırır, Ctrl+Z geri alır'
+
+vi:
+  label: 'Giai đoạn — kéo để di chuyển, Shift và kéo để chọn nhiều phần tử; mũi tên di chuyển các phần đã chọn, Delete xóa chúng, Ctrl+Z hoàn tác'
+
+id:
+  label: 'Tingkat — seret untuk memindahkannya, Shift dan seret untuk memilih beberapa elemen; panah memindahkan yang dipilih, Hapus menghapusnya, Ctrl+Z membatalkan'
+
+nl:
+  label: 'Stage — sleep om te verplaatsen, Shift en sleep om meerdere elementen te selecteren; pijlen verplaatsen de geselecteerde, Verwijderen verwijdert ze, Ctrl+Z maakt ongedaan'

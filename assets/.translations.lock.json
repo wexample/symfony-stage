@@ -5,6 +5,120 @@
             "engine": "syrtis"
         }
     },
+    "components/stage/stage.bn.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.de.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.es.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.fa.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.fi.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.he.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.hi.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.id.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.it.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.ja.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.ko.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.nl.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.pl.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.pt_BR.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.ru.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.th.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.tr.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.ur.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.vi.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
     "components/stage/stage.zh.yml": {
         "label": {
             "hash": "b330a4c55f9ad29c384e2db640166f36",
