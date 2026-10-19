@@ -1,0 +1,14 @@
+{
+    "components/stage/stage.ar.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    },
+    "components/stage/stage.zh.yml": {
+        "label": {
+            "hash": "b330a4c55f9ad29c384e2db640166f36",
+            "engine": "syrtis"
+        }
+    }
+}
