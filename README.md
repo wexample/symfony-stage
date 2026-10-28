@@ -1,6 +1,6 @@
 # symfony_stage
 
-Version: 2.0.6
+Version: 2.0.7
 
 Create interactive editor in Symfony
 
