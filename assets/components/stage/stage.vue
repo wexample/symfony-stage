@@ -85,6 +85,12 @@ export default {
       type: Boolean,
       default: false
     },
+    // Whether the elements picked can be taken off the stage (Delete): a page
+    // that saves only where they stand keeps them all.
+    removable: {
+      type: Boolean,
+      default: true
+    },
     bounded: {
       type: Boolean,
       default: false
@@ -556,7 +562,7 @@ export default {
     },
 
     removeSelected() {
-      if (this.readonly || !this.selection.length) {
+      if (this.readonly || !this.removable || !this.selection.length) {
         return;
       }
 
