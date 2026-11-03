@@ -67,7 +67,7 @@ const ZOOM_STEP = 1.2;
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-stage',
 
-  emits: ['update:elements', 'update:links', 'update:selection', 'connect'],
+  emits: ['update:elements', 'update:links', 'update:selection', 'connect', 'connect-void'],
 
   props: {
     elements: {
@@ -146,6 +146,10 @@ export default {
     // way out — or in —, dragged, dropped on a way in — or out — of another
     // element. The stage adds no link: it asks the page (`connect`, `{ from,
     // fromPort, to, toPort }`), which keeps it or not and hands the links back.
+    // Dropped on no port, the link asks for what it would lead to
+    // (`connect-void`, `{ from, fromPort, side, x, y, left, top }`): where it
+    // was dropped, on the surface (`x`, `y`) and in the stage (`left`, `top`)
+    // — a new element, picked there.
     linkable: {
       type: Boolean,
       default: false
@@ -567,7 +571,16 @@ export default {
         this.forgetRoutes(gesture.origins.map((origin) => origin.id));
         this.commit(gesture.before);
       } else if (gesture.type === 'connect') {
-        this.connectTo(gesture.port, document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-stage-port]'));
+        const under = document.elementFromPoint(event.clientX, event.clientY);
+        const targetEl = under?.closest('[data-stage-port]');
+
+        if (targetEl) {
+          this.connectTo(gesture.port, targetEl);
+        } else if (gesture.moved && !under?.closest('[data-stage-element]')) {
+          // On the surface itself: an element dropped on leads nowhere.
+          this.connectVoid(gesture.port, event);
+        }
+
         this.draft = null;
         this.draftTarget = null;
       } else if (gesture.type === 'pan' && !gesture.moved) {
@@ -576,6 +589,20 @@ export default {
       }
 
       this.endGesture();
+    },
+
+    // A link dropped where no port is: the page asked what it leads to.
+    connectVoid(port, event) {
+      const rect = this.$refs.root.getBoundingClientRect();
+
+      this.$emit('connect-void', {
+        from: port.id,
+        fromPort: port.port,
+        side: port.side,
+        ...this.toWorld(event),
+        left: event.clientX - rect.left,
+        top: event.clientY - rect.top
+      });
     },
 
     // The port of this grip, when a link drawn from `port` may end on it: of
