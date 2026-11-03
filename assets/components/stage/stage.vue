@@ -104,7 +104,7 @@ export default {
       default: true
     },
     // Whether the surface scales — Ctrl (⌘) and the wheel about the pointer,
-    // zoomIn() / zoomOut() / zoomTo() from the page —, between `zoomMin` and
+    // zoomIn() / zoomOut() / zoomTo() / zoomToFit() from the page —, between `zoomMin` and
     // `zoomMax`. Off, the surface is drawn at its size.
     zoomable: {
       type: Boolean,
@@ -761,6 +761,25 @@ export default {
         x: Math.round(point.x - (point.x - this.pan.x) * ratio),
         y: this.axis === 'x' ? 0 : Math.round(point.y - (point.y - this.pan.y) * ratio)
       });
+    },
+
+    // The surface scaled so that what it holds fits in the stage, a step in
+    // from its edges — within the zoom's bounds —, and brought to its middle.
+    zoomToFit() {
+      const bounds = stageGeometryBounds(this.items.map((item) => ({ ...item, height: item.height || 0 })));
+      const root = this.$refs.root;
+      const margin = 2 * (this.grid > 0 ? this.grid : 16);
+
+      if (this.zoomable && bounds && root && bounds.width && bounds.height) {
+        const fits = Math.min(
+          (root.clientWidth - 2 * margin) / bounds.width,
+          this.axis === 'x' ? Infinity : (root.clientHeight - 2 * margin) / bounds.height
+        );
+
+        this.zoom = Math.min(this.zoomMax, Math.max(this.zoomMin, fits));
+      }
+
+      this.center();
     },
 
     // The surface moved so that what it holds starts at its top left corner,
