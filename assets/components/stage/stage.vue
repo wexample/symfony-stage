@@ -67,7 +67,7 @@ const ZOOM_STEP = 1.2;
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-stage',
 
-  emits: ['update:elements', 'update:links', 'update:selection', 'connect', 'connect-void'],
+  emits: ['update:elements', 'update:links', 'update:selection', 'connect', 'connect-void', 'remove'],
 
   props: {
     elements: {
@@ -101,8 +101,10 @@ export default {
       type: Boolean,
       default: false
     },
-    // Whether the elements picked can be taken off the stage (Delete): a page
-    // that saves only where they stand keeps them all.
+    // Whether the elements picked are taken off the stage by the stage itself
+    // (Delete). Either way it says which were asked off (`remove`, their ids):
+    // a page that saves each change, keeping them here, asks its server and
+    // hands back what is left.
     removable: {
       type: Boolean,
       default: true
@@ -814,7 +816,13 @@ export default {
     },
 
     removeSelected() {
-      if (this.readonly || !this.removable || !this.selection.length) {
+      if (this.readonly || !this.selection.length) {
+        return;
+      }
+
+      this.$emit('remove', [...this.selection]);
+
+      if (!this.removable) {
         return;
       }
 
