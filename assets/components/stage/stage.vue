@@ -576,7 +576,11 @@ export default {
     // Ringed: the port under the pointer, and while a link is drawn, those of
     // the other side it may end on.
     isPortLit(port) {
-      return port.key === this.litPort || (this.draft && port.side !== this.draft.from.side && port.id !== this.draft.from.id);
+      if (this.draft) {
+        return port.side !== this.draft.from.side && port.id !== this.draft.from.id;
+      }
+
+      return port.key === this.litPort;
     },
 
     // A port dropped on another of the other side, on another element: the

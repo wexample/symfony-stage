@@ -43,6 +43,12 @@
                 {#- Its ends marked on the edges, half of each round under the
                     element it touches (`linkConnectors`); so is every port an
                     element declares, a link waiting for it or not. -#}
+                {#- The link being drawn, from its port to the pointer; the port
+                    it leaves ringed wider, over the link, under its connector. -#}
+                <template v-if="draft">
+                    <path class="stage--link stage--link--draft" :d="draftPath()"></path>
+                    <circle class="stage--connector-ring" :cx="draft.from.x" :cy="draft.from.y"></circle>
+                </template>
                 <template v-if="linkConnectors">
                     <circle v-for="port in drawnPorts"
                             :key="port.key"
@@ -57,8 +63,6 @@
                                 :cx="end.x" :cy="end.y"></circle>
                     </template>
                 </template>
-                {#- The link being drawn, from its port to the pointer. -#}
-                <path v-if="draft" class="stage--link stage--link--draft" :d="draftPath()"></path>
             </svg>
 
             {#- A link's word, where its line has room for it. -#}

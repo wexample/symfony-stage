@@ -187,7 +187,16 @@
 
 .stage--connector.is-lit {
   stroke: var(--color-selected);
-  stroke-width: 3px;
+  stroke-width: 6px;
+}
+
+// The port a link is drawn from: a ring a fifth wider than its connector,
+// dark within, the link it draws passing under it.
+.stage--connector-ring {
+  r: calc(var(--stage-connector-radius) * 1.2);
+  fill: var(--surface-page);
+  stroke: var(--color-selected);
+  stroke-width: 6px;
 }
 
 // The link being drawn: dashed, until it is dropped on a port.
