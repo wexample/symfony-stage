@@ -5,9 +5,12 @@ import {
   stageGeometryBounds,
   stageGeometryIntersects,
   stageGeometryLabelPoint,
+  stageGeometryLinkEnds,
   stageGeometryLinkPath,
   stageGeometryPolyline,
-  stageGeometrySnap
+  stageGeometryRoundedPath,
+  stageGeometrySnap,
+  stageGeometryStepPoints
 } from '../../js/Helper/StageGeometry';
 import { buildUniqueId } from '@wexample/js-helpers/Helper/Id';
 
@@ -99,6 +102,23 @@ export default {
     // zoomIn() / zoomOut() / zoomTo() from the page —, between `zoomMin` and
     // `zoomMax`. Off, the surface is drawn at its size.
     zoomable: {
+      type: Boolean,
+      default: false
+    },
+    // How a link is drawn between two elements: a curve (`curve`), or square
+    // with rounded corners (`step`), as a wiring diagram draws it.
+    linkShape: {
+      type: String,
+      default: 'curve'
+    },
+    // Whether a link ends on an arrow.
+    linkArrows: {
+      type: Boolean,
+      default: true
+    },
+    // Whether a link's ends are marked on the edges it leaves and reaches: a
+    // round connector, half of it under the element.
+    linkConnectors: {
       type: Boolean,
       default: false
     },
@@ -266,10 +286,23 @@ export default {
     },
 
     defaultLinkPoints(link) {
-      const from = this.byId[link.from];
-      const to = this.byId[link.to];
+      const from = this.boxOf(this.byId[link.from]);
+      const to = this.boxOf(this.byId[link.to]);
 
-      return [[from.x + from.width, from.y + (from.height || 0) / 2], [to.x, to.y + (to.height || 0) / 2]];
+      if (this.linkShape === 'step') {
+        return stageGeometryStepPoints(from, to);
+      }
+
+      return stageGeometryLinkEnds(from, to).map(({ x, y }) => [x, y]);
+    },
+
+    // Where a link's ends stand, for its connectors.
+    linkEnds(link) {
+      return stageGeometryLinkEnds(this.boxOf(this.byId[link.from]), this.boxOf(this.byId[link.to]));
+    },
+
+    boxOf(item) {
+      return { ...item, height: item.height || 0 };
     },
 
     regionStyle(region) {
@@ -302,8 +335,12 @@ export default {
     // A route of its own is followed while neither end has moved since it
     // was drawn; once one has, the link is drawn afresh between them.
     linkPath(link) {
-      return link.points && !this.movedSinceRouted(link)
-        ? stageGeometryPolyline(link.points)
+      if (link.points && !this.movedSinceRouted(link)) {
+        return stageGeometryPolyline(link.points);
+      }
+
+      return this.linkShape === 'step'
+        ? stageGeometryRoundedPath(this.defaultLinkPoints(link))
         : stageGeometryLinkPath(this.byId[link.from], this.byId[link.to]);
     },
 

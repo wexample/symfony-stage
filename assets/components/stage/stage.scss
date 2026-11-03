@@ -68,6 +68,15 @@
   }
 }
 
+// A link's end on an element's edge, half hidden under it.
+.stage--connector {
+  fill: var(--border-color-strong);
+
+  &.is-selected {
+    fill: var(--color-selected);
+  }
+}
+
 .stage--arrow {
   fill: var(--border-color-strong);
 }

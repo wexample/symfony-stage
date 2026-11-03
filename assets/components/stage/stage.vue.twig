@@ -39,7 +39,18 @@
                       class="stage--link"
                       :class="[link.kind ? 'stage--link--' + link.kind : null, lightClass(link.id), { 'is-selected': isLinkSelected(link) }]"
                       :d="linkPath(link)"
-                      :marker-end="'url(#' + markerId + ')'"></path>
+                      :marker-end="linkArrows ? 'url(#' + markerId + ')' : null"></path>
+                {#- Its ends marked on the edges, half of each round under the
+                    element it touches (`linkConnectors`). -#}
+                <template v-if="linkConnectors">
+                    <template v-for="link in drawnLinks" :key="link.id + '-ends'">
+                        <circle v-for="(end, index) in linkEnds(link)"
+                                :key="index"
+                                class="stage--connector"
+                                :class="[lightClass(link.id), { 'is-selected': isLinkSelected(link) }]"
+                                :cx="end.x" :cy="end.y" r="5"></circle>
+                    </template>
+                </template>
             </svg>
 
             {#- A link's word, where its line has room for it. -#}

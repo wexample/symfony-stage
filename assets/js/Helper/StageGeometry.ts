@@ -88,3 +88,78 @@ export function stageGeometryLinkPath(from: StageBox, to: StageBox): string {
 
   return `M ${start.x} ${start.y} C ${start.x + reach} ${start.y}, ${end.x - reach} ${end.y}, ${end.x} ${end.y}`;
 }
+
+// Where a link leaves a box and where it arrives: the middle of the right edge
+// of the one, of the left edge of the other.
+export function stageGeometryLinkEnds(from: StageBox, to: StageBox): [StagePoint, StagePoint] {
+  return [
+    { x: from.x + from.width, y: from.y + from.height / 2 },
+    { x: to.x, y: to.y + to.height / 2 },
+  ];
+}
+
+// The corners of a link drawn square, as a wiring diagram draws it: out of
+// the right edge of one box, `gap` along, then down or up, then into the left
+// edge of the other. A box standing behind the one it comes from — further
+// left — is reached round them, through the room between them when one stands
+// over the other, under both otherwise, so the line never crosses a box.
+export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24): [number, number][] {
+  const [start, end] = stageGeometryLinkEnds(from, to);
+
+  if (end.x - start.x >= 2 * gap) {
+    const middle = Math.round((start.x + end.x) / 2);
+
+    return [[start.x, start.y], [middle, start.y], [middle, end.y], [end.x, end.y]];
+  }
+
+  const out = start.x + gap;
+  const back = end.x - gap;
+  const fromBottom = from.y + from.height;
+  const toBottom = to.y + to.height;
+  let across: number;
+
+  if (fromBottom + gap <= to.y) {
+    across = Math.round((fromBottom + to.y) / 2);
+  } else if (toBottom + gap <= from.y) {
+    across = Math.round((toBottom + from.y) / 2);
+  } else {
+    across = Math.max(fromBottom, toBottom) + gap;
+  }
+
+  return [[start.x, start.y], [out, start.y], [out, across], [back, across], [back, end.y], [end.x, end.y]];
+}
+
+// A line through these points, its corners rounded — each by at most `radius`,
+// and never past half of the shorter stretch it joins.
+export function stageGeometryRoundedPath(points: [number, number][], radius = 8): string {
+  if (points.length < 3) {
+    return stageGeometryPolyline(points);
+  }
+
+  let path = `M ${points[0][0]} ${points[0][1]}`;
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const [ax, ay] = points[i - 1];
+    const [bx, by] = points[i];
+    const [cx, cy] = points[i + 1];
+    const before = Math.hypot(bx - ax, by - ay);
+    const after = Math.hypot(cx - bx, cy - by);
+    const r = Math.min(radius, before / 2, after / 2);
+
+    if (!r) {
+      path += ` L ${bx} ${by}`;
+      continue;
+    }
+
+    const inX = bx - ((bx - ax) / before) * r;
+    const inY = by - ((by - ay) / before) * r;
+    const outX = bx + ((cx - bx) / after) * r;
+    const outY = by + ((cy - by) / after) * r;
+
+    path += ` L ${inX} ${inY} Q ${bx} ${by} ${outX} ${outY}`;
+  }
+
+  const [lx, ly] = points[points.length - 1];
+
+  return `${path} L ${lx} ${ly}`;
+}
