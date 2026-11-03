@@ -172,31 +172,22 @@
   pointer-events: none;
 }
 
-// A port's grip (`linkable`): over its connector, to draw a link from. Lit,
-// it colours the half of the connector outside its element — the other half
-// is under the element, as the connector's is. While a link is drawn, the
-// ports it may end on are lit.
+// A port's grip (`linkable`): over its connector, to draw a link from, and
+// seen through — what it lights is the connector, under the elements, ringed:
+// the element hides the half of the ring it stands on. While a link is drawn,
+// the ports it may end on are ringed.
 .stage--port {
   position: absolute;
-  width: calc(var(--stage-connector-radius) * 2);
-  height: calc(var(--stage-connector-radius) * 2);
+  width: calc(var(--stage-connector-radius) * 2 + 6px);
+  height: calc(var(--stage-connector-radius) * 2 + 6px);
   transform: translate(-50%, -50%);
   border-radius: 50%;
   cursor: crosshair;
 }
 
-.stage--port--out {
-  clip-path: inset(0 0 0 50%);
-}
-
-.stage--port--in {
-  clip-path: inset(0 50% 0 0);
-}
-
-.stage--port:hover,
-.stage[data-connecting='out'] .stage--port--in,
-.stage[data-connecting='in'] .stage--port--out {
-  background: var(--color-selected);
+.stage--connector.is-lit {
+  stroke: var(--color-selected);
+  stroke-width: 3px;
 }
 
 // The link being drawn: dashed, until it is dropped on a port.

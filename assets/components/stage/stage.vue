@@ -187,6 +187,8 @@ export default {
       marquee: null,
       // The link being drawn from a port: where it leaves, where the pointer is.
       draft: null,
+      // The port under the pointer, its connector ringed.
+      litPort: null,
       canUndo: false,
       canRedo: false,
       markerId: buildUniqueId('stage-arrow')
@@ -569,6 +571,12 @@ export default {
       }
 
       this.endGesture();
+    },
+
+    // Ringed: the port under the pointer, and while a link is drawn, those of
+    // the other side it may end on.
+    isPortLit(port) {
+      return port.key === this.litPort || (this.draft && port.side !== this.draft.from.side && port.id !== this.draft.from.id);
     },
 
     // A port dropped on another of the other side, on another element: the

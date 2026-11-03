@@ -9,7 +9,6 @@
     <div ref="root"
          class="stage"
          :class="{ 'stage--readonly': readonly, 'stage--grid': grid > 0, 'is-panning': gesture && gesture.type === 'pan' && gesture.moved }"
-         :data-connecting="draft ? draft.from.side : null"
          :style="stageStyle"
          :tabindex="readonly ? null : 0"
          role="application"
@@ -48,7 +47,7 @@
                     <circle v-for="port in drawnPorts"
                             :key="port.key"
                             class="stage--connector"
-                            :class="[lightClass(port.id), { 'is-selected': selection.includes(port.id) }]"
+                            :class="[lightClass(port.id), { 'is-selected': selection.includes(port.id), 'is-lit': isPortLit(port) }]"
                             :cx="port.x" :cy="port.y"></circle>
                     <template v-for="link in drawnLinks" :key="link.id + '-ends'">
                         <circle v-for="(end, index) in linkEnds(link)"
@@ -102,7 +101,9 @@
                       class="stage--port"
                       :class="'stage--port--' + port.side"
                       :style="{ left: port.x + 'px', top: port.y + 'px' }"
-                      :data-stage-port="port.key"></span>
+                      :data-stage-port="port.key"
+                      @pointerenter="litPort = port.key"
+                      @pointerleave="litPort = null"></span>
             </template>
         </div>
 
