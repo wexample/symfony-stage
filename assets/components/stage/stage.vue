@@ -103,6 +103,12 @@ export default {
       type: Boolean,
       default: true
     },
+    // Whether a change can be undone and done again (Ctrl (⌘) Z, Y): a page
+    // saving each change as it is made keeps none — what it saved stays.
+    undoable: {
+      type: Boolean,
+      default: true
+    },
     // Whether the surface scales — Ctrl (⌘) and the wheel about the pointer,
     // zoomIn() / zoomOut() / zoomTo() / zoomToFit() from the page —, between `zoomMin` and
     // `zoomMax`. Off, the surface is drawn at its size.
@@ -595,7 +601,10 @@ export default {
     // A change made: the state before it goes to the history, the state after
     // it to the page.
     commit(before) {
-      this.history.record(before);
+      if (this.undoable) {
+        this.history.record(before);
+      }
+
       this.emitState();
     },
 
@@ -614,7 +623,7 @@ export default {
     },
 
     undo() {
-      const state = this.history.undo(this.state());
+      const state = this.undoable ? this.history.undo(this.state()) : null;
 
       if (state) {
         this.restore(state);
@@ -622,7 +631,7 @@ export default {
     },
 
     redo() {
-      const state = this.history.redo(this.state());
+      const state = this.undoable ? this.history.redo(this.state()) : null;
 
       if (state) {
         this.restore(state);
