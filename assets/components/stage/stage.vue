@@ -24,8 +24,12 @@ const DRAG_THRESHOLD = 3;
 // How many grid steps a press of Shift with an arrow moves.
 const NUDGE_FAR = 5;
 
-// A surface the pointer moves, and elements laid on it: picked, dragged,
-// linked, removed, and every change undone and done again.
+// How much a press of the zoom, or a notch of Ctrl and the wheel, scales.
+const ZOOM_STEP = 1.2;
+
+// A surface the pointer moves — and scales, when `zoomable` —, and elements
+// laid on it: picked, dragged, linked, removed, and every change undone and
+// done again.
 //
 // The elements are the page's own — `v-model:elements`, each a box `{ id, x,
 // y, width, height }` with whatever else the page keeps on it — and so are the
@@ -91,6 +95,21 @@ export default {
       type: Boolean,
       default: true
     },
+    // Whether the surface scales — Ctrl (⌘) and the wheel about the pointer,
+    // zoomIn() / zoomOut() / zoomTo() from the page —, between `zoomMin` and
+    // `zoomMax`. Off, the surface is drawn at its size.
+    zoomable: {
+      type: Boolean,
+      default: false
+    },
+    zoomMin: {
+      type: Number,
+      default: 0.25
+    },
+    zoomMax: {
+      type: Number,
+      default: 2
+    },
     bounded: {
       type: Boolean,
       default: false
@@ -107,6 +126,8 @@ export default {
       edges: this.copy(this.links),
       selection: [],
       pan: { x: 0, y: 0 },
+      // The surface's scale: 1 draws it at its size.
+      zoom: 1,
       gesture: null,
       marquee: null,
       canUndo: false,
@@ -117,14 +138,14 @@ export default {
 
   computed: {
     worldStyle() {
-      return { transform: `translate(${this.pan.x}px, ${this.pan.y}px)` };
+      return { transform: `translate(${this.pan.x}px, ${this.pan.y}px) scale(${this.zoom})` };
     },
 
     // The grid moves with the surface: it is drawn on the stage itself,
     // shifted by as much as the surface was.
     stageStyle() {
       return this.grid > 0
-        ? { '--stage-grid': `${this.grid}px`, backgroundPosition: `${this.pan.x}px ${this.pan.y}px` }
+        ? { '--stage-grid': `${this.grid * this.zoom}px`, backgroundPosition: `${this.pan.x}px ${this.pan.y}px` }
         : {};
     },
 
@@ -133,10 +154,10 @@ export default {
 
       return box
         ? {
-          left: `${box.x + this.pan.x}px`,
-          top: `${box.y + this.pan.y}px`,
-          width: `${box.width}px`,
-          height: `${box.height}px`
+          left: `${box.x * this.zoom + this.pan.x}px`,
+          top: `${box.y * this.zoom + this.pan.y}px`,
+          width: `${box.width * this.zoom}px`,
+          height: `${box.height * this.zoom}px`
         }
         : {};
     },
@@ -300,7 +321,10 @@ export default {
     toWorld(event) {
       const rect = this.$refs.root.getBoundingClientRect();
 
-      return { x: event.clientX - rect.left - this.pan.x, y: event.clientY - rect.top - this.pan.y };
+      return {
+        x: (event.clientX - rect.left - this.pan.x) / this.zoom,
+        y: (event.clientY - rect.top - this.pan.y) / this.zoom
+      };
     },
 
     // --- What the pointer does.
@@ -392,10 +416,11 @@ export default {
       if (gesture.type === 'pan') {
         this.pan = this.clampPan({ x: gesture.origin.x + dx, y: this.axis === 'x' ? 0 : gesture.origin.y + dy });
       } else if (gesture.type === 'move') {
+        // The pointer travels on the screen, the elements on the surface.
         gesture.origins.forEach((origin) => {
           const item = this.byId[origin.id];
-          item.x = stageGeometrySnap(origin.x + dx, this.grid);
-          item.y = stageGeometrySnap(origin.y + dy, this.grid);
+          item.x = stageGeometrySnap(origin.x + dx / this.zoom, this.grid);
+          item.y = stageGeometrySnap(origin.y + dy / this.zoom, this.grid);
         });
       } else if (gesture.type === 'marquee') {
         this.marquee = stageGeometryBoxFromCorners(gesture.start, this.toWorld(event));
@@ -428,6 +453,19 @@ export default {
     // wheel moves it down while there is more below, and sideways once there
     // is not — a diagram as tall as the stage reads as a timeline does.
     onWheel(event) {
+      // Ctrl (⌘) and the wheel scale the surface about the pointer.
+      if (this.zoomable && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+
+        const rect = this.$refs.root.getBoundingClientRect();
+        this.zoomTo(this.zoom * (event.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP), {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
+        });
+
+        return;
+      }
+
       let dx = event.deltaX;
       let dy = event.deltaY;
 
@@ -469,7 +507,8 @@ export default {
         return pan;
       }
 
-      const clamp = (value, start, size, view) => Math.min(-start, Math.max(view - (start + size), value));
+      // On the screen: the surface's bounds as scaled.
+      const clamp = (value, start, size, view) => Math.min(-start * this.zoom, Math.max(view - (start + size) * this.zoom, value));
 
       return {
         x: clamp(pan.x, bounds.x, bounds.width, this.$refs.root.clientWidth),
@@ -620,9 +659,38 @@ export default {
       }
 
       this.pan = {
-        x: Math.round((root.clientWidth - bounds.width) / 2 - bounds.x),
-        y: this.axis === 'x' ? 0 : Math.round((root.clientHeight - bounds.height) / 2 - bounds.y)
+        x: Math.round((root.clientWidth - bounds.width * this.zoom) / 2 - bounds.x * this.zoom),
+        y: this.axis === 'x' ? 0 : Math.round((root.clientHeight - bounds.height * this.zoom) / 2 - bounds.y * this.zoom)
       };
+    },
+
+    zoomIn() {
+      this.zoomTo(this.zoom * ZOOM_STEP);
+    },
+
+    zoomOut() {
+      this.zoomTo(this.zoom / ZOOM_STEP);
+    },
+
+    // The surface scaled to `zoom`, within its bounds, about a point of the
+    // stage (`anchor`, on the screen) that stays where it is — its middle when
+    // none is given.
+    zoomTo(zoom, anchor = null) {
+      const root = this.$refs.root;
+      const next = Math.min(this.zoomMax, Math.max(this.zoomMin, zoom));
+
+      if (!this.zoomable || !root || next === this.zoom) {
+        return;
+      }
+
+      const point = anchor ?? { x: root.clientWidth / 2, y: root.clientHeight / 2 };
+      const ratio = next / this.zoom;
+
+      this.zoom = next;
+      this.pan = this.clampPan({
+        x: Math.round(point.x - (point.x - this.pan.x) * ratio),
+        y: this.axis === 'x' ? 0 : Math.round(point.y - (point.y - this.pan.y) * ratio)
+      });
     },
 
     // The surface moved so that what it holds starts at its top left corner,
@@ -632,7 +700,7 @@ export default {
       const margin = this.grid > 0 ? this.grid : 16;
 
       this.pan = bounds
-        ? { x: margin - bounds.x, y: this.axis === 'x' ? 0 : margin - bounds.y }
+        ? { x: margin - bounds.x * this.zoom, y: this.axis === 'x' ? 0 : margin - bounds.y * this.zoom }
         : { x: 0, y: 0 };
     }
   }

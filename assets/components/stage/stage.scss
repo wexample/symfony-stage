@@ -42,6 +42,8 @@
   left: 0;
   width: 0;
   height: 0;
+  // Scaled from the surface's origin, as the pan is counted (zoomable).
+  transform-origin: 0 0;
 }
 
 .stage--links {
