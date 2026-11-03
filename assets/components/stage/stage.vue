@@ -7,6 +7,7 @@ import {
   stageGeometryLabelPoint,
   stageGeometryLinkEnds,
   stageGeometryLinkPath,
+  stageGeometryMidPoint,
   stageGeometryPolyline,
   stageGeometryRoundedPath,
   stageGeometrySnap,
@@ -49,8 +50,8 @@ const ZOOM_STEP = 1.2;
 //
 // A link may carry its own route (`points`, `[[x, y], …]`), a `label` drawn on
 // it and a `kind` the page styles it by (`stage--link--<kind>`). The `link`
-// slot lays the page's markup on each link, where its label would stand: a
-// handle, a button taking it off. Regions
+// slot lays the page's markup on each link, halfway along it: a handle, a
+// button taking it off. Regions
 // (`regions`, `{ id, x, y, width, height, title, kind }`) are drawn under
 // everything — the lanes of a process, the days of a planning —, a title in
 // their head. `highlighted` lights some elements and links and dims the rest:
@@ -312,6 +313,11 @@ export default {
 
     linkLabelPoint(link) {
       return stageGeometryLabelPoint(link.points ?? this.defaultLinkPoints(link));
+    },
+
+    // Where the page's handle on a link stands: halfway along it.
+    linkHandlePoint(link) {
+      return stageGeometryMidPoint(link.points ?? this.defaultLinkPoints(link));
     },
 
     defaultLinkPoints(link) {

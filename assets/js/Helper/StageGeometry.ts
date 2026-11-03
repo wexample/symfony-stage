@@ -84,6 +84,29 @@ export function stageGeometryLabelPoint(points: [number, number][]): StagePoint 
   return best;
 }
 
+// The point halfway along a line through these points, by its length: what
+// stands between its two ends — a handle on a link, centred between the boxes
+// it joins however close they stand.
+export function stageGeometryMidPoint(points: [number, number][]): StagePoint {
+  const lengths = points.slice(1).map(([x, y], i) => Math.hypot(x - points[i][0], y - points[i][1]));
+  let left = lengths.reduce((sum, length) => sum + length, 0) / 2;
+
+  for (let i = 0; i < lengths.length; i++) {
+    if (left <= lengths[i] && lengths[i] > 0) {
+      const ratio = left / lengths[i];
+
+      return {
+        x: points[i][0] + (points[i + 1][0] - points[i][0]) * ratio,
+        y: points[i][1] + (points[i + 1][1] - points[i][1]) * ratio,
+      };
+    }
+
+    left -= lengths[i];
+  }
+
+  return { x: points[0][0], y: points[0][1] };
+}
+
 // The path of a link read left to right — a step leading to the next, as on
 // a timeline: out of the right edge of one box, into the left edge of the
 // other, bent so that it leaves and arrives level. Going backwards, it loops
