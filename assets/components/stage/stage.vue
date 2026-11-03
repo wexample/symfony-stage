@@ -42,6 +42,11 @@ const ZOOM_STEP = 1.2;
 // given the element and whether it is selected, draws it as any markup — a
 // card, a form, a chart.
 //
+// An element may declare its ports (`ports`, `[{ id, side, y }]`): where, down
+// its left edge (`side: 'in'`) or its right one (`side: 'out'`), a link meets
+// it — the outputs of a step listed on its card. A link names the ports it
+// joins (`fromPort`, `toPort`); one naming none meets the middle of the edge.
+//
 // A link may carry its own route (`points`, `[[x, y], …]`), a `label` drawn on
 // it and a `kind` the page styles it by (`stage--link--<kind>`). Regions
 // (`regions`, `{ id, x, y, width, height, title, kind }`) are drawn under
@@ -196,6 +201,17 @@ export default {
       return this.edges.filter((link) => this.byId[link.from] && this.byId[link.to]);
     },
 
+    // Every port declared, linked or not, where it stands on its element's
+    // edge: what a connector marks.
+    drawnPorts() {
+      return this.items.flatMap((item) => (item.ports ?? []).map((port) => ({
+        key: `${item.id}-${port.side}-${port.id}`,
+        id: item.id,
+        x: port.side === 'in' ? item.x : item.x + item.width,
+        y: item.y + port.y
+      })));
+    },
+
     resolvedLabel() {
       return this.label || this.trans(`${T}label`);
     }
@@ -295,15 +311,27 @@ export default {
       const to = this.boxOf(this.byId[link.to]);
 
       if (this.linkShape === 'step') {
-        return stageGeometryStepPoints(from, to);
+        return stageGeometryStepPoints(from, to, undefined, this.linkAnchors(link));
       }
 
-      return stageGeometryLinkEnds(from, to).map(({ x, y }) => [x, y]);
+      return stageGeometryLinkEnds(from, to, this.linkAnchors(link)).map(({ x, y }) => [x, y]);
     },
 
     // Where a link's ends stand, for its connectors.
     linkEnds(link) {
-      return stageGeometryLinkEnds(this.boxOf(this.byId[link.from]), this.boxOf(this.byId[link.to]));
+      return stageGeometryLinkEnds(this.boxOf(this.byId[link.from]), this.boxOf(this.byId[link.to]), this.linkAnchors(link));
+    },
+
+    // How far down each element a link meets it: at the ports it names.
+    linkAnchors(link) {
+      return {
+        from: this.portY(this.byId[link.from], 'out', link.fromPort),
+        to: this.portY(this.byId[link.to], 'in', link.toPort)
+      };
+    },
+
+    portY(item, side, id) {
+      return id == null ? undefined : item.ports?.find((port) => port.side === side && port.id === id)?.y;
     },
 
     boxOf(item) {
@@ -346,7 +374,7 @@ export default {
 
       return this.linkShape === 'step'
         ? stageGeometryRoundedPath(this.defaultLinkPoints(link), this.linkRadius)
-        : stageGeometryLinkPath(this.byId[link.from], this.byId[link.to]);
+        : stageGeometryLinkPath(this.byId[link.from], this.byId[link.to], this.linkAnchors(link));
     },
 
     // Moving under the pointer right now: the route waits for the drop to be

@@ -13,6 +13,13 @@ export interface StagePoint {
   y: number;
 }
 
+// How far down its box each end of a link stands — a port of the box, from
+// its top —; an end not given stands in the middle of its edge.
+export interface StageLinkAnchors {
+  from?: number;
+  to?: number;
+}
+
 // A value brought to the nearest step of the grid; a grid of 0 or less is no
 // grid at all.
 export function stageGeometrySnap(value: number, grid: number): number {
@@ -81,20 +88,19 @@ export function stageGeometryLabelPoint(points: [number, number][]): StagePoint 
 // a timeline: out of the right edge of one box, into the left edge of the
 // other, bent so that it leaves and arrives level. Going backwards, it loops
 // round rather than cutting through the boxes.
-export function stageGeometryLinkPath(from: StageBox, to: StageBox): string {
-  const start = { x: from.x + from.width, y: from.y + from.height / 2 };
-  const end = { x: to.x, y: to.y + to.height / 2 };
+export function stageGeometryLinkPath(from: StageBox, to: StageBox, anchors: StageLinkAnchors = {}): string {
+  const [start, end] = stageGeometryLinkEnds(from, to, anchors);
   const reach = Math.max(Math.abs(end.x - start.x) / 2, 40);
 
   return `M ${start.x} ${start.y} C ${start.x + reach} ${start.y}, ${end.x - reach} ${end.y}, ${end.x} ${end.y}`;
 }
 
-// Where a link leaves a box and where it arrives: the middle of the right edge
-// of the one, of the left edge of the other.
-export function stageGeometryLinkEnds(from: StageBox, to: StageBox): [StagePoint, StagePoint] {
+// Where a link leaves a box and where it arrives: on the right edge of the
+// one, on the left edge of the other, at their anchors or in their middle.
+export function stageGeometryLinkEnds(from: StageBox, to: StageBox, anchors: StageLinkAnchors = {}): [StagePoint, StagePoint] {
   return [
-    { x: from.x + from.width, y: from.y + from.height / 2 },
-    { x: to.x, y: to.y + to.height / 2 },
+    { x: from.x + from.width, y: from.y + (anchors.from ?? from.height / 2) },
+    { x: to.x, y: to.y + (anchors.to ?? to.height / 2) },
   ];
 }
 
@@ -103,8 +109,8 @@ export function stageGeometryLinkEnds(from: StageBox, to: StageBox): [StagePoint
 // edge of the other. A box standing behind the one it comes from — further
 // left — is reached round them, through the room between them when one stands
 // over the other, under both otherwise, so the line never crosses a box.
-export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24): [number, number][] {
-  const [start, end] = stageGeometryLinkEnds(from, to);
+export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24, anchors: StageLinkAnchors = {}): [number, number][] {
+  const [start, end] = stageGeometryLinkEnds(from, to, anchors);
 
   if (end.x - start.x >= 2 * gap) {
     const middle = Math.round((start.x + end.x) / 2);

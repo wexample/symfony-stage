@@ -41,8 +41,14 @@
                       :d="linkPath(link)"
                       :marker-end="linkArrows ? 'url(#' + markerId + ')' : null"></path>
                 {#- Its ends marked on the edges, half of each round under the
-                    element it touches (`linkConnectors`). -#}
+                    element it touches (`linkConnectors`); so is every port an
+                    element declares, a link waiting for it or not. -#}
                 <template v-if="linkConnectors">
+                    <circle v-for="port in drawnPorts"
+                            :key="port.key"
+                            class="stage--connector"
+                            :class="[lightClass(port.id), { 'is-selected': selection.includes(port.id) }]"
+                            :cx="port.x" :cy="port.y"></circle>
                     <template v-for="link in drawnLinks" :key="link.id + '-ends'">
                         <circle v-for="(end, index) in linkEnds(link)"
                                 :key="index"
