@@ -70,7 +70,7 @@
                 actions on it (`link` slot) —: answering as any
                 markup does, not a grip of the surface. -#}
             <template v-if="$slots.link">
-                <div v-for="link in drawnLinks"
+                <div v-for="link in handledLinks"
                      :key="link.id + '-handle'"
                      class="stage--link-handle"
                      :class="lightClass(link.id)"

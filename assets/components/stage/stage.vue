@@ -6,6 +6,7 @@ import {
   stageGeometryIntersects,
   stageGeometryLabelPoint,
   stageGeometryLinkEnds,
+  stageGeometryLength,
   stageGeometryLinkPath,
   stageGeometryMidPoint,
   stageGeometryPolyline,
@@ -141,6 +142,13 @@ export default {
       type: Boolean,
       default: false
     },
+    // How long a link must be to hold the page's handle (`link` slot), in
+    // pixels: on a shorter one — two boxes almost touching — none is laid,
+    // it would cover the link it marks.
+    linkHandleMinLength: {
+      type: Number,
+      default: 0
+    },
     zoomMin: {
       type: Number,
       default: 0.25
@@ -208,6 +216,11 @@ export default {
     // A link whose ends are not both on the stage is not drawn.
     drawnLinks() {
       return this.edges.filter((link) => this.byId[link.from] && this.byId[link.to]);
+    },
+
+    // The links long enough to hold the page's handle.
+    handledLinks() {
+      return this.drawnLinks.filter((link) => stageGeometryLength(link.points ?? this.defaultLinkPoints(link)) >= this.linkHandleMinLength);
     },
 
     // Every port declared, linked or not, where it stands on its element's

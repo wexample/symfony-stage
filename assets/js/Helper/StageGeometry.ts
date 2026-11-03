@@ -84,12 +84,17 @@ export function stageGeometryLabelPoint(points: [number, number][]): StagePoint 
   return best;
 }
 
+// How long a line through these points is.
+export function stageGeometryLength(points: [number, number][]): number {
+  return points.slice(1).reduce((sum, [x, y], i) => sum + Math.hypot(x - points[i][0], y - points[i][1]), 0);
+}
+
 // The point halfway along a line through these points, by its length: what
 // stands between its two ends — a handle on a link, centred between the boxes
 // it joins however close they stand.
 export function stageGeometryMidPoint(points: [number, number][]): StagePoint {
   const lengths = points.slice(1).map(([x, y], i) => Math.hypot(x - points[i][0], y - points[i][1]));
-  let left = lengths.reduce((sum, length) => sum + length, 0) / 2;
+  let left = stageGeometryLength(points) / 2;
 
   for (let i = 0; i < lengths.length; i++) {
     if (left <= lengths[i] && lengths[i] > 0) {
