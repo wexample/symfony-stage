@@ -172,11 +172,10 @@
   pointer-events: none;
 }
 
-// What the page lays on a link (`link` slot), centred on its point, over the
-// elements' layer.
+// What the page lays on a link (`link` slot), centred on its point: under the
+// elements, as the link it marks.
 .stage--link-handle {
   position: absolute;
-  z-index: 1;
   transform: translate(-50%, -50%);
 }
 
