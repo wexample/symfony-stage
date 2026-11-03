@@ -9,6 +9,7 @@
     <div ref="root"
          class="stage"
          :class="{ 'stage--readonly': readonly, 'stage--grid': grid > 0, 'is-panning': gesture && gesture.type === 'pan' && gesture.moved }"
+         :data-connecting="draft ? draft.from.side : null"
          :style="stageStyle"
          :tabindex="readonly ? null : 0"
          role="application"
@@ -57,6 +58,8 @@
                                 :cx="end.x" :cy="end.y"></circle>
                     </template>
                 </template>
+                {#- The link being drawn, from its port to the pointer. -#}
+                <path v-if="draft" class="stage--link stage--link--draft" :d="draftPath()"></path>
             </svg>
 
             {#- A link's word, where its line has room for it. -#}
@@ -90,6 +93,17 @@
                     <div class="block block--card block--padded stage--element-default">[[ item.title || item.id ]]</div>
                 </slot>
             </div>
+
+            {#- What a link is drawn from and dropped on (`linkable`): a grip
+                over each port's connector, over the elements. -#}
+            <template v-if="linkable && !readonly">
+                <span v-for="port in drawnPorts"
+                      :key="port.key + '-grip'"
+                      class="stage--port"
+                      :class="'stage--port--' + port.side"
+                      :style="{ left: port.x + 'px', top: port.y + 'px' }"
+                      :data-stage-port="port.key"></span>
+            </template>
         </div>
 
         <div v-if="marquee" class="stage--marquee" :style="marqueeStyle"></div>

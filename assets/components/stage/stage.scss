@@ -172,6 +172,32 @@
   pointer-events: none;
 }
 
+// A port's grip (`linkable`): over its connector, a little wider than it, to
+// draw a link from. While one is drawn, the ports it may end on are ringed.
+.stage--port {
+  position: absolute;
+  width: calc(var(--stage-connector-radius) * 2 + 6px);
+  height: calc(var(--stage-connector-radius) * 2 + 6px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  cursor: crosshair;
+
+  &:hover {
+    box-shadow: 0 0 0 2px var(--color-selected);
+  }
+}
+
+.stage[data-connecting='out'] .stage--port--in,
+.stage[data-connecting='in'] .stage--port--out {
+  box-shadow: 0 0 0 2px var(--color-selected);
+}
+
+// The link being drawn: dashed, until it is dropped on a port.
+.stage--link--draft {
+  stroke: var(--color-selected);
+  stroke-dasharray: 6 4;
+}
+
 // What the page lays on a link (`link` slot), centred on its point: under the
 // elements, as the link it marks.
 .stage--link-handle {

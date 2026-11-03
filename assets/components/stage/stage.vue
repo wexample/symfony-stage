@@ -67,7 +67,7 @@ const ZOOM_STEP = 1.2;
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-stage',
 
-  emits: ['update:elements', 'update:links', 'update:selection'],
+  emits: ['update:elements', 'update:links', 'update:selection', 'connect'],
 
   props: {
     elements: {
@@ -142,6 +142,14 @@ export default {
       type: Boolean,
       default: false
     },
+    // Whether a link is drawn from one port to another (`ports`): pressed on a
+    // way out — or in —, dragged, dropped on a way in — or out — of another
+    // element. The stage adds no link: it asks the page (`connect`, `{ from,
+    // fromPort, to, toPort }`), which keeps it or not and hands the links back.
+    linkable: {
+      type: Boolean,
+      default: false
+    },
     // How long a link must be to hold the page's handle (`link` slot), in
     // pixels: on a shorter one — two boxes almost touching — none is laid,
     // it would cover the link it marks.
@@ -177,6 +185,8 @@ export default {
       zoom: 1,
       gesture: null,
       marquee: null,
+      // The link being drawn from a port: where it leaves, where the pointer is.
+      draft: null,
       canUndo: false,
       canRedo: false,
       markerId: buildUniqueId('stage-arrow')
@@ -229,6 +239,8 @@ export default {
       return this.items.flatMap((item) => (item.ports ?? []).map((port) => ({
         key: `${item.id}-${port.side}-${port.id}`,
         id: item.id,
+        port: port.id,
+        side: port.side,
         x: port.side === 'in' ? item.x : item.x + item.width,
         y: item.y + port.y
       })));
@@ -431,6 +443,16 @@ export default {
         return;
       }
 
+      const portEl = event.target.closest('[data-stage-port]');
+
+      if (portEl) {
+        const port = this.drawnPorts.find((candidate) => candidate.key === portEl.dataset.stagePort);
+        this.startGesture(event, { type: 'connect', port });
+        this.draft = { from: port, x: port.x, y: port.y };
+
+        return;
+      }
+
       const elementEl = event.target.closest('[data-stage-element]');
       const additive = event.ctrlKey || event.metaKey || event.shiftKey;
 
@@ -519,6 +541,8 @@ export default {
           item.x = stageGeometrySnap(origin.x + dx / this.zoom, this.grid);
           item.y = stageGeometrySnap(origin.y + dy / this.zoom, this.grid);
         });
+      } else if (gesture.type === 'connect') {
+        this.draft = { ...this.draft, ...this.toWorld(event) };
       } else if (gesture.type === 'marquee') {
         this.marquee = stageGeometryBoxFromCorners(gesture.start, this.toWorld(event));
         const picked = this.items.filter((item) => stageGeometryIntersects(this.marquee, { ...item, height: item.height || 0 }));
@@ -536,12 +560,38 @@ export default {
       if (gesture.type === 'move' && gesture.moved) {
         this.forgetRoutes(gesture.origins.map((origin) => origin.id));
         this.commit(gesture.before);
+      } else if (gesture.type === 'connect') {
+        this.connectTo(gesture.port, document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-stage-port]'));
+        this.draft = null;
       } else if (gesture.type === 'pan' && !gesture.moved) {
         // A press on the surface that went nowhere: nothing is picked any more.
         this.select([]);
       }
 
       this.endGesture();
+    },
+
+    // A port dropped on another of the other side, on another element: the
+    // page asked for the link, out to in, whichever end it was drawn from.
+    connectTo(port, targetEl) {
+      const target = targetEl && this.drawnPorts.find((candidate) => candidate.key === targetEl.dataset.stagePort);
+
+      if (!target || target.side === port.side || target.id === port.id) {
+        return;
+      }
+
+      const [from, to] = port.side === 'out' ? [port, target] : [target, port];
+
+      this.$emit('connect', { from: from.id, fromPort: from.port, to: to.id, toPort: to.port });
+    },
+
+    // The link being drawn, square as the others, from its port to the
+    // pointer: out of the right edge from a way out, of the left from a way in.
+    draftPath() {
+      const { from, x, y } = this.draft;
+      const middle = Math.round((from.x + x) / 2);
+
+      return stageGeometryRoundedPath([[from.x, from.y], [middle, from.y], [middle, y], [x, y]], this.linkRadius);
     },
 
     // A wheel moves the surface; on a line of its own, either way of the
