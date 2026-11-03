@@ -172,10 +172,19 @@
   pointer-events: none;
 }
 
+// What the page lays on a link (`link` slot), centred on its point, over the
+// elements' layer.
+.stage--link-handle {
+  position: absolute;
+  z-index: 1;
+  transform: translate(-50%, -50%);
+}
+
 // Lit and dimmed: what a walk or a search points at, and the rest.
 .stage--element,
 .stage--link,
-.stage--link-label {
+.stage--link-label,
+.stage--link-handle {
   @include transition.colors(1);
 }
 

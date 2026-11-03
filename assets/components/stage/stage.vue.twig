@@ -66,6 +66,20 @@
                   :class="lightClass(link.id)"
                   :style="{ left: linkLabelPoint(link).x + 'px', top: linkLabelPoint(link).y + 'px' }">[[ link.label ]]</span>
 
+            {#- What the page lays on a link, where its word would stand — a
+                handle, the actions on it (`link` slot) —: answering as any
+                markup does, not a grip of the surface. -#}
+            <template v-if="$slots.link">
+                <div v-for="link in drawnLinks"
+                     :key="link.id + '-handle'"
+                     class="stage--link-handle"
+                     :class="lightClass(link.id)"
+                     :style="{ left: linkLabelPoint(link).x + 'px', top: linkLabelPoint(link).y + 'px' }"
+                     data-stage-no-drag>
+                    <slot name="link" :link="link"></slot>
+                </div>
+            </template>
+
             <div v-for="item in items"
                  :key="item.id"
                  class="stage--element"

@@ -48,7 +48,9 @@ const ZOOM_STEP = 1.2;
 // joins (`fromPort`, `toPort`); one naming none meets the middle of the edge.
 //
 // A link may carry its own route (`points`, `[[x, y], …]`), a `label` drawn on
-// it and a `kind` the page styles it by (`stage--link--<kind>`). Regions
+// it and a `kind` the page styles it by (`stage--link--<kind>`). The `link`
+// slot lays the page's markup on each link, where its label would stand: a
+// handle, a button taking it off. Regions
 // (`regions`, `{ id, x, y, width, height, title, kind }`) are drawn under
 // everything — the lanes of a process, the days of a planning —, a title in
 // their head. `highlighted` lights some elements and links and dims the rest:
