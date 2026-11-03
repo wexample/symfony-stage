@@ -190,13 +190,21 @@
   stroke-width: 6px;
 }
 
-// The port a link is drawn from: a ring a fifth wider than its connector,
-// dark within, the link it draws passing under it.
+// Under each port, a ring the size of its connector, out of sight; grown a
+// fifth wider for the port a link is drawn from and the one it would end on,
+// dark within, the link drawn passing under it.
 .stage--connector-ring {
-  r: calc(var(--stage-connector-radius) * 1.2);
+  r: var(--stage-connector-radius);
   fill: var(--surface-page);
   stroke: var(--color-selected);
   stroke-width: 6px;
+  opacity: 0;
+  transition: r 160ms ease-out, opacity 160ms ease-out;
+
+  &.is-grown {
+    r: calc(var(--stage-connector-radius) * 1.2);
+    opacity: 1;
+  }
 }
 
 // The link being drawn: dashed, until it is dropped on a port.

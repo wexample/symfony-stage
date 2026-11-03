@@ -44,10 +44,16 @@
                     element it touches (`linkConnectors`); so is every port an
                     element declares, a link waiting for it or not. -#}
                 {#- The link being drawn, from its port to the pointer; the port
-                    it leaves ringed wider, over the link, under its connector. -#}
-                <template v-if="draft">
-                    <path class="stage--link stage--link--draft" :d="draftPath()"></path>
-                    <circle class="stage--connector-ring" :cx="draft.from.x" :cy="draft.from.y"></circle>
+                    it leaves and the one it would end on ringed wider, over the
+                    link, under their connectors — a ring under each port, grown
+                    for those two. -#}
+                <path v-if="draft" class="stage--link stage--link--draft" :d="draftPath()"></path>
+                <template v-if="linkConnectors && linkable && !readonly">
+                    <circle v-for="port in drawnPorts"
+                            :key="port.key + '-ring'"
+                            class="stage--connector-ring"
+                            :class="{ 'is-grown': isPortGrown(port) }"
+                            :cx="port.x" :cy="port.y"></circle>
                 </template>
                 <template v-if="linkConnectors">
                     <circle v-for="port in drawnPorts"

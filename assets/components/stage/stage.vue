@@ -189,6 +189,8 @@ export default {
       draft: null,
       // The port under the pointer, its connector ringed.
       litPort: null,
+      // While a link is drawn, the port it would end on if dropped now.
+      draftTarget: null,
       canUndo: false,
       canRedo: false,
       markerId: buildUniqueId('stage-arrow')
@@ -545,6 +547,8 @@ export default {
         });
       } else if (gesture.type === 'connect') {
         this.draft = { ...this.draft, ...this.toWorld(event) };
+        // The pointer held by the stage, the port under it is looked for.
+        this.draftTarget = this.portTarget(gesture.port, document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-stage-port]'))?.key ?? null;
       } else if (gesture.type === 'marquee') {
         this.marquee = stageGeometryBoxFromCorners(gesture.start, this.toWorld(event));
         const picked = this.items.filter((item) => stageGeometryIntersects(this.marquee, { ...item, height: item.height || 0 }));
@@ -565,12 +569,26 @@ export default {
       } else if (gesture.type === 'connect') {
         this.connectTo(gesture.port, document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-stage-port]'));
         this.draft = null;
+        this.draftTarget = null;
       } else if (gesture.type === 'pan' && !gesture.moved) {
         // A press on the surface that went nowhere: nothing is picked any more.
         this.select([]);
       }
 
       this.endGesture();
+    },
+
+    // The port of this grip, when a link drawn from `port` may end on it: of
+    // the other side, on another element.
+    portTarget(port, targetEl) {
+      const target = targetEl && this.drawnPorts.find((candidate) => candidate.key === targetEl.dataset.stagePort);
+
+      return target && target.side !== port.side && target.id !== port.id ? target : null;
+    },
+
+    // Grown: the port a link is drawn from, and the one it would end on.
+    isPortGrown(port) {
+      return Boolean(this.draft) && (port.key === this.draft.from.key || port.key === this.draftTarget);
     },
 
     // Ringed: the port under the pointer, and while a link is drawn, those of
@@ -586,9 +604,9 @@ export default {
     // A port dropped on another of the other side, on another element: the
     // page asked for the link, out to in, whichever end it was drawn from.
     connectTo(port, targetEl) {
-      const target = targetEl && this.drawnPorts.find((candidate) => candidate.key === targetEl.dataset.stagePort);
+      const target = this.portTarget(port, targetEl);
 
-      if (!target || target.side === port.side || target.id === port.id) {
+      if (!target) {
         return;
       }
 
