@@ -657,6 +657,12 @@ export default {
     // wheel moves it down while there is more below, and sideways once there
     // is not — a diagram as tall as the stage reads as a timeline does.
     onWheel(event) {
+      // What the page lays over the surface and keeps out of its gestures
+      // (`data-stage-no-drag`) — a list, a picker — scrolls itself.
+      if (event.target.closest('[data-stage-no-drag]')) {
+        return;
+      }
+
       // Ctrl (⌘) and the wheel scale the surface about the pointer.
       if (this.zoomable && (event.ctrlKey || event.metaKey)) {
         event.preventDefault();
