@@ -111,6 +111,11 @@ export default {
       type: String,
       default: 'curve'
     },
+    // How round a square link's corners are, in pixels (`step`).
+    linkRadius: {
+      type: Number,
+      default: 8
+    },
     // Whether a link ends on an arrow.
     linkArrows: {
       type: Boolean,
@@ -340,7 +345,7 @@ export default {
       }
 
       return this.linkShape === 'step'
-        ? stageGeometryRoundedPath(this.defaultLinkPoints(link))
+        ? stageGeometryRoundedPath(this.defaultLinkPoints(link), this.linkRadius)
         : stageGeometryLinkPath(this.byId[link.from], this.byId[link.to]);
     },
 

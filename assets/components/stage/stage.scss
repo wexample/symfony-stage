@@ -58,10 +58,17 @@
   pointer-events: none;
 }
 
+// A page dresses its links with these: how thick a link is, how wide its
+// connectors.
+.stage {
+  --stage-link-width: 2px;
+  --stage-connector-radius: 5px;
+}
+
 .stage--link {
   fill: none;
   stroke: var(--border-color-strong);
-  stroke-width: 2;
+  stroke-width: var(--stage-link-width);
 
   &.is-selected {
     stroke: var(--color-selected);
@@ -71,6 +78,7 @@
 // A link's end on an element's edge, half hidden under it.
 .stage--connector {
   fill: var(--border-color-strong);
+  r: var(--stage-connector-radius);
 
   &.is-selected {
     fill: var(--color-selected);
