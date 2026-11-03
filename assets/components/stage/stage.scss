@@ -30,8 +30,10 @@
 }
 
 // The grid: dots a step apart, moving with the surface.
+// A step quieter than any line of the page, so what stands on the stage reads
+// first; a page wanting it otherwise says `--stage-grid-color`.
 .stage--grid {
-  background-image: radial-gradient(circle, var(--border-color-default) 1px, transparent 1.5px);
+  background-image: radial-gradient(circle, var(--stage-grid-color, var(--neutral-4)) 1px, transparent 1.5px);
   background-size: var(--stage-grid) var(--stage-grid);
 }
 
