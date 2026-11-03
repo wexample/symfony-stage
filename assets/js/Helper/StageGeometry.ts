@@ -133,14 +133,17 @@ export function stageGeometryLinkEnds(from: StageBox, to: StageBox, anchors: Sta
 }
 
 // The corners of a link drawn square, as a wiring diagram draws it: out of
-// the right edge of one box, `gap` along, then down or up, then into the left
-// edge of the other. A box standing behind the one it comes from — further
-// left — is reached round them, through the room between them when one stands
+// the right edge of one box, halfway to the other, then down or up, then into
+// its left edge. A box standing behind the one it comes from — its left edge
+// further left than the other's right one — is reached round them, `gap` out
+// of each, through the room between them when one stands
 // over the other, under both otherwise, so the line never crosses a box.
 export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24, anchors: StageLinkAnchors = {}): [number, number][] {
   const [start, end] = stageGeometryLinkEnds(from, to, anchors);
 
-  if (end.x - start.x >= 2 * gap) {
+  // Ahead, however close: straight across the room between them. Only one
+  // standing behind is reached round.
+  if (end.x >= start.x) {
     const middle = Math.round((start.x + end.x) / 2);
 
     return [[start.x, start.y], [middle, start.y], [middle, end.y], [end.x, end.y]];
