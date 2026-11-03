@@ -16,14 +16,13 @@
   min-height: 12rem;
   background-color: var(--surface-zone);
   border-radius: var(--zone-radius, var(--radius-box));
+  // The stage takes the focus so its keys answer — delete, arrows, undo —,
+  // and says nothing of it: the whole surface ringed tells nothing a
+  // selection does not already.
   outline: none;
   cursor: grab;
   touch-action: none;
   user-select: none;
-
-  &:focus-visible {
-    box-shadow: inset 0 0 0 2px var(--color-selected);
-  }
 
   &.is-panning {
     cursor: grabbing;
