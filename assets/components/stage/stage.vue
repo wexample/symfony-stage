@@ -607,6 +607,24 @@ export default {
       return link;
     },
 
+    // The surface moved so that what it holds stands in the middle of the
+    // stage — on the line it moves along, with an `x` axis.
+    center() {
+      const bounds = stageGeometryBounds(this.items.map((item) => ({ ...item, height: item.height || 0 })));
+      const root = this.$refs.root;
+
+      if (!bounds || !root) {
+        this.pan = { x: 0, y: 0 };
+
+        return;
+      }
+
+      this.pan = {
+        x: Math.round((root.clientWidth - bounds.width) / 2 - bounds.x),
+        y: this.axis === 'x' ? 0 : Math.round((root.clientHeight - bounds.height) / 2 - bounds.y)
+      };
+    },
+
     // The surface moved so that what it holds starts at its top left corner,
     // a step in.
     fit() {
