@@ -3,6 +3,8 @@ import StageHistory from '../../js/Class/StageHistory';
 import {
   stageGeometryBoxFromCorners,
   stageGeometryBounds,
+  stageGeometryFanTurns,
+  stageGeometryHandlePoint,
   stageGeometryIntersects,
   stageGeometryLabelPoint,
   stageGeometryLinkEnds,
@@ -133,6 +135,13 @@ export default {
       type: Number,
       default: 8
     },
+    // How far apart, in pixels, the square links leaving one port — or
+    // reaching one — turn, so that they do not run down the same line
+    // (`step`, stageGeometryFanTurns); 0 lets them.
+    linkFanSpacing: {
+      type: Number,
+      default: 6
+    },
     // Whether a link ends on an arrow.
     linkArrows: {
       type: Boolean,
@@ -236,6 +245,25 @@ export default {
     // A link whose ends are not both on the stage is not drawn.
     drawnLinks() {
       return this.edges.filter((link) => this.byId[link.from] && this.byId[link.to]);
+    },
+
+    // Where each square link turns and which end it shares with others, by
+    // its id: a link routed by the page follows its own points.
+    linkFans() {
+      if (this.linkShape !== 'step' || !this.linkFanSpacing) {
+        return new Map();
+      }
+
+      return stageGeometryFanTurns(
+        this.drawnLinks
+          .filter((link) => !link.points)
+          .map((link) => {
+            const [start, end] = this.linkEnds(link);
+
+            return { id: link.id, start, end };
+          }),
+        this.linkFanSpacing
+      );
     },
 
     // The links long enough to hold the page's handle.
@@ -350,9 +378,15 @@ export default {
       return stageGeometryLabelPoint(link.points ?? this.defaultLinkPoints(link));
     },
 
-    // Where the page's handle on a link stands: halfway along it.
+    // Where the page's handle on a link stands: halfway along it, or on the
+    // stretch it has alone when it shares an end with others — their handles
+    // would stand on one another.
     linkHandlePoint(link) {
-      return stageGeometryMidPoint(link.points ?? this.defaultLinkPoints(link));
+      if (link.points) {
+        return stageGeometryMidPoint(link.points);
+      }
+
+      return stageGeometryHandlePoint(this.defaultLinkPoints(link), this.linkFans.get(link.id)?.shared ?? null);
     },
 
     defaultLinkPoints(link) {
@@ -360,7 +394,7 @@ export default {
       const to = this.boxOf(this.byId[link.to]);
 
       if (this.linkShape === 'step') {
-        return stageGeometryStepPoints(from, to, undefined, this.linkAnchors(link));
+        return stageGeometryStepPoints(from, to, undefined, this.linkAnchors(link), this.linkFans.get(link.id)?.turn ?? null);
       }
 
       return stageGeometryLinkEnds(from, to, this.linkAnchors(link)).map(({ x, y }) => [x, y]);

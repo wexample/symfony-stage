@@ -138,13 +138,14 @@ export function stageGeometryLinkEnds(from: StageBox, to: StageBox, anchors: Sta
 // further left than the other's right one — is reached round them, `gap` out
 // of each, through the room between them when one stands
 // over the other, under both otherwise, so the line never crosses a box.
-export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24, anchors: StageLinkAnchors = {}): [number, number][] {
+export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24, anchors: StageLinkAnchors = {}, turn: number | null = null): [number, number][] {
   const [start, end] = stageGeometryLinkEnds(from, to, anchors);
 
-  // Ahead, however close: straight across the room between them. Only one
-  // standing behind is reached round.
+  // Ahead, however close: straight across the room between them — turning
+  // where it is told (`turn`, stageGeometryFanTurns), halfway otherwise. Only
+  // one standing behind is reached round.
   if (end.x >= start.x) {
-    const middle = Math.round((start.x + end.x) / 2);
+    const middle = turn ?? Math.round((start.x + end.x) / 2);
 
     return [[start.x, start.y], [middle, start.y], [middle, end.y], [end.x, end.y]];
   }
@@ -200,3 +201,90 @@ export function stageGeometryRoundedPath(points: [number, number][], radius = 8)
 
   return `${path} L ${lx} ${ly}`;
 }
+
+export type StageFanLink = {
+  id: string | number;
+  start: StagePoint;
+  end: StagePoint;
+};
+
+export type StageFanTurn = {
+  // Where the link goes up or down.
+  turn: number;
+  // The end it shares with others, where its handle would sit among theirs.
+  shared: 'start' | 'end' | null;
+};
+
+// Where the square links leaving one port — or reaching one — turn, so that
+// each stands apart instead of all running down the same line: spaced
+// `spacing` apart around their halfway point, the one going farthest turning
+// first on the way out — last on the way in —, up and down apart. Ordered so,
+// the links of one fan never cross. Links sharing no end keep their halfway
+// turn.
+export function stageGeometryFanTurns(links: StageFanLink[], spacing = 6): Map<string | number, StageFanTurn> {
+  const turns = new Map<string | number, StageFanTurn>();
+  const key = (point: StagePoint) => `${Math.round(point.x)}:${Math.round(point.y)}`;
+  const ahead = links.filter((link) => link.end.x >= link.start.x);
+
+  for (const link of ahead) {
+    turns.set(link.id, { turn: Math.round((link.start.x + link.end.x) / 2), shared: null });
+  }
+
+  const spread = (group: StageFanLink[], side: 'start' | 'end') => {
+    for (const direction of [-1, 1]) {
+      // Those going up, then those going down; a level one has no turn.
+      const bent = group
+        .filter((link) => Math.sign(link.end.y - link.start.y) === direction)
+        .sort((a, b) => Math.abs(b.end.y - b.start.y) - Math.abs(a.end.y - a.start.y));
+
+      bent.forEach((link, rank) => {
+        const centred = (rank - (bent.length - 1) / 2) * spacing;
+        const offset = side === 'start' ? centred : -centred;
+        const halfway = (link.start.x + link.end.x) / 2;
+        // Never so far as to turn before leaving or after arriving.
+        const turn = Math.round(Math.min(link.end.x - spacing, Math.max(link.start.x + spacing, halfway + offset)));
+
+        turns.set(link.id, { turn, shared: side });
+      });
+    }
+  };
+
+  const byEnd = (side: 'start' | 'end') => {
+    const groups = new Map<string, StageFanLink[]>();
+
+    for (const link of ahead) {
+      const point = link[side];
+      groups.set(key(point), [...(groups.get(key(point)) ?? []), link]);
+    }
+
+    return [...groups.values()].filter((group) => group.length > 1);
+  };
+
+  // Fanning out first; a link fanning in alone is spread there.
+  for (const group of byEnd('start')) {
+    spread(group, 'start');
+  }
+
+  for (const group of byEnd('end')) {
+    spread(group.filter((link) => turns.get(link.id)?.shared === null), 'end');
+  }
+
+  return turns;
+}
+
+// Where a square link's handle stands: on the stretch it has alone — after
+// its turn when it shares where it leaves, before it when it shares where it
+// arrives —, halfway along it otherwise, or when that stretch is too short to
+// hold it.
+export function stageGeometryHandlePoint(points: [number, number][], shared: 'start' | 'end' | null, minLength = 24): StagePoint {
+  if (points.length === 4 && shared) {
+    const [[ax, ay], [bx, by]] = shared === 'start' ? [points[2], points[3]] : [points[0], points[1]];
+
+    if (Math.hypot(bx - ax, by - ay) >= minLength) {
+      return { x: (ax + bx) / 2, y: (ay + by) / 2 };
+    }
+  }
+
+  return stageGeometryMidPoint(points);
+}
+
