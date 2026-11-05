@@ -922,6 +922,23 @@ export default {
       };
     },
 
+    // The surface moved so that one element stands in the middle: what a
+    // page points at from elsewhere is brought under the eye, the zoom left
+    // as the reader set it. An id the stage does not hold moves nothing.
+    centerOn(id) {
+      const item = this.byId[id];
+      const root = this.$refs.root;
+
+      if (!item || !root) {
+        return;
+      }
+
+      this.pan = {
+        x: Math.round(root.clientWidth / 2 - (item.x + (item.width || 0) / 2) * this.zoom),
+        y: this.axis === 'x' ? 0 : Math.round(root.clientHeight / 2 - (item.y + (item.height || 0) / 2) * this.zoom)
+      };
+    },
+
     zoomIn() {
       this.zoomTo(this.zoom * ZOOM_STEP);
     },
