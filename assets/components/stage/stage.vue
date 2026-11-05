@@ -811,7 +811,14 @@ export default {
       }
     },
 
+    // The same choice again changes nothing, and is not told: a page that
+    // picks what it is shown — an element pointed at from elsewhere —
+    // would hear its own choice back and answer it again.
     select(ids) {
+      if (ids.length === this.selection.length && ids.every((id, index) => id === this.selection[index])) {
+        return;
+      }
+
       this.selection = ids;
       this.$emit('update:selection', [...ids]);
     },
