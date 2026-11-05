@@ -247,8 +247,9 @@ export default {
       return this.edges.filter((link) => this.byId[link.from] && this.byId[link.to]);
     },
 
-    // Where each square link turns and which end it shares with others, by
-    // its id: a link routed by the page follows its own points.
+    // Where each square link turns, which end it shares with others and how
+    // far out it loops round, by its id: a link routed by the page follows
+    // its own points.
     linkFans() {
       if (this.linkShape !== 'step' || !this.linkFanSpacing) {
         return new Map();
@@ -260,7 +261,7 @@ export default {
           .map((link) => {
             const [start, end] = this.linkEnds(link);
 
-            return { id: link.id, start, end };
+            return { id: link.id, start, end, from: this.boxOf(this.byId[link.from]), to: this.boxOf(this.byId[link.to]) };
           }),
         this.linkFanSpacing
       );
@@ -394,7 +395,9 @@ export default {
       const to = this.boxOf(this.byId[link.to]);
 
       if (this.linkShape === 'step') {
-        return stageGeometryStepPoints(from, to, undefined, this.linkAnchors(link), this.linkFans.get(link.id)?.turn ?? null);
+        const fan = this.linkFans.get(link.id);
+
+        return stageGeometryStepPoints(from, to, undefined, this.linkAnchors(link), fan?.turn ?? null, fan?.loop ?? 0);
       }
 
       return stageGeometryLinkEnds(from, to, this.linkAnchors(link)).map(({ x, y }) => [x, y]);

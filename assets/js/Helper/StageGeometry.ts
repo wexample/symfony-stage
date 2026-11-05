@@ -137,8 +137,10 @@ export function stageGeometryLinkEnds(from: StageBox, to: StageBox, anchors: Sta
 // its left edge. A box standing behind the one it comes from — its left edge
 // further left than the other's right one — is reached round them, `gap` out
 // of each, through the room between them when one stands
-// over the other, under both otherwise, so the line never crosses a box.
-export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24, anchors: StageLinkAnchors = {}, turn: number | null = null): [number, number][] {
+// over the other, under both otherwise, so the line never crosses a box —
+// `loop` further out on every side when other loops share that way round
+// (stageGeometryFanTurns).
+export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24, anchors: StageLinkAnchors = {}, turn: number | null = null, loop = 0): [number, number][] {
   const [start, end] = stageGeometryLinkEnds(from, to, anchors);
 
   // Ahead, however close: straight across the room between them — turning
@@ -150,21 +152,30 @@ export function stageGeometryStepPoints(from: StageBox, to: StageBox, gap = 24, 
     return [[start.x, start.y], [middle, start.y], [middle, end.y], [end.x, end.y]];
   }
 
-  const out = start.x + gap;
-  const back = end.x - gap;
-  const fromBottom = from.y + from.height;
-  const toBottom = to.y + to.height;
-  let across: number;
-
-  if (fromBottom + gap <= to.y) {
-    across = Math.round((fromBottom + to.y) / 2);
-  } else if (toBottom + gap <= from.y) {
-    across = Math.round((toBottom + from.y) / 2);
-  } else {
-    across = Math.max(fromBottom, toBottom) + gap;
-  }
+  const out = start.x + gap + loop;
+  const back = end.x - gap - loop;
+  const across = stageGeometryLoopAcross(from, to, gap, loop);
 
   return [[start.x, start.y], [out, start.y], [out, across], [back, across], [back, end.y], [end.x, end.y]];
+}
+
+// Where a link going back runs across: through the room between the two
+// boxes when one stands over the other — `loop` further down, held inside
+// that room —, under both otherwise, `loop` further down.
+export function stageGeometryLoopAcross(from: StageBox, to: StageBox, gap = 24, loop = 0): number {
+  const fromBottom = from.y + from.height;
+  const toBottom = to.y + to.height;
+  const room = fromBottom + gap <= to.y
+    ? [fromBottom, to.y]
+    : toBottom + gap <= from.y ? [toBottom, from.y] : null;
+
+  if (room) {
+    const [top, bottom] = room;
+
+    return Math.round(Math.min(bottom - gap / 2, (top + bottom) / 2 + loop));
+  }
+
+  return Math.max(fromBottom, toBottom) + gap + loop;
 }
 
 // A line through these points, its corners rounded — each by at most `radius`,
@@ -206,6 +217,9 @@ export type StageFanLink = {
   id: string | number;
   start: StagePoint;
   end: StagePoint;
+  // The boxes it joins: what a link going back is routed round.
+  from?: StageBox;
+  to?: StageBox;
 };
 
 export type StageFanTurn = {
@@ -213,6 +227,9 @@ export type StageFanTurn = {
   turn: number;
   // The end it shares with others, where its handle would sit among theirs.
   shared: 'start' | 'end' | null;
+  // How much further out a link going back runs round, its loop around
+  // smaller ones it overlaps.
+  loop: number;
 };
 
 // Where the square links leaving one port — or reaching one — turn, so that
@@ -220,14 +237,16 @@ export type StageFanTurn = {
 // `spacing` apart around their halfway point, the one going farthest turning
 // first on the way out — last on the way in —, up and down apart. Ordered so,
 // the links of one fan never cross. Links sharing no end keep their halfway
-// turn.
-export function stageGeometryFanTurns(links: StageFanLink[], spacing = 6): Map<string | number, StageFanTurn> {
+// turn. The links going back are nested, as brackets are: the smallest loop
+// innermost, each one overlapping it a `spacing` further out round its boxes,
+// so that two loops never run along the same line.
+export function stageGeometryFanTurns(links: StageFanLink[], spacing = 6, gap = 24): Map<string | number, StageFanTurn> {
   const turns = new Map<string | number, StageFanTurn>();
   const key = (point: StagePoint) => `${Math.round(point.x)}:${Math.round(point.y)}`;
   const ahead = links.filter((link) => link.end.x >= link.start.x);
 
   for (const link of ahead) {
-    turns.set(link.id, { turn: Math.round((link.start.x + link.end.x) / 2), shared: null });
+    turns.set(link.id, { turn: Math.round((link.start.x + link.end.x) / 2), shared: null, loop: 0 });
   }
 
   const spread = (group: StageFanLink[], side: 'start' | 'end') => {
@@ -244,7 +263,7 @@ export function stageGeometryFanTurns(links: StageFanLink[], spacing = 6): Map<s
         // Never so far as to turn before leaving or after arriving.
         const turn = Math.round(Math.min(link.end.x - spacing, Math.max(link.start.x + spacing, halfway + offset)));
 
-        turns.set(link.id, { turn, shared: side });
+        turns.set(link.id, { turn, shared: side, loop: 0 });
       });
     }
   };
@@ -267,6 +286,30 @@ export function stageGeometryFanTurns(links: StageFanLink[], spacing = 6): Map<s
 
   for (const group of byEnd('end')) {
     spread(group.filter((link) => turns.get(link.id)?.shared === null), 'end');
+  }
+
+  // The loops, smallest first, each a step further out than every loop it
+  // overlaps along the same way round.
+  const placed: { left: number; right: number; across: number; rank: number }[] = [];
+  const loops = links
+    .filter((link) => link.end.x < link.start.x && link.from && link.to)
+    .sort((a, b) => (a.start.x - a.end.x) - (b.start.x - b.end.x));
+
+  for (const link of loops) {
+    const left = link.end.x - gap;
+    const right = link.start.x + gap;
+    const across = stageGeometryLoopAcross(link.from!, link.to!, gap);
+    const taken = new Set(placed
+      .filter((other) => other.left <= right && left <= other.right && Math.abs(other.across - across) <= gap)
+      .map((other) => other.rank));
+    let rank = 0;
+
+    while (taken.has(rank)) {
+      rank++;
+    }
+
+    placed.push({ left, right, across, rank });
+    turns.set(link.id, { turn: 0, shared: null, loop: rank * spacing });
   }
 
   return turns;
