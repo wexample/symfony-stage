@@ -14,6 +14,7 @@
          role="application"
          :aria-label="resolvedLabel"
          @pointerdown="onPointerDown"
+         @dblclick="onDoubleClick"
          @wheel="onWheel">
         <div class="stage--world" :style="worldStyle">
             {#- Under everything: the regions — lanes, days —, a title in their
@@ -97,8 +98,7 @@
                  class="stage--element"
                  :class="[item.kind ? 'stage--element--' + item.kind : null, lightClass(item.id), { 'is-selected': isSelected(item) }]"
                  :style="elementStyle(item)"
-                 :data-stage-element="item.id"
-                 @dblclick="$emit('open', item.id)">
+                 :data-stage-element="item.id">
                 <slot name="element" :element="item" :selected="isSelected(item)">
                     <div class="block block--card block--padded stage--element-default">[[ item.title || item.id ]]</div>
                 </slot>

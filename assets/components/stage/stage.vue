@@ -488,6 +488,19 @@ export default {
 
     // --- What the pointer does.
 
+    // On the root, not the element: a drag captures the pointer there, and
+    // the double-click comes to the root whatever was under it — the element
+    // read from the point.
+    onDoubleClick(event) {
+      const id = document.elementFromPoint(event.clientX, event.clientY)
+        ?.closest('[data-stage-element]')
+        ?.getAttribute('data-stage-element');
+
+      if (id) {
+        this.$emit('open', id);
+      }
+    },
+
     onPointerDown(event) {
       if (event.button !== 0 || event.target.closest(INTERACTIVE)) {
         return;
