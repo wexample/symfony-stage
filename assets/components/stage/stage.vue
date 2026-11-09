@@ -66,10 +66,13 @@ const ZOOM_STEP = 1.2;
 // drawn past them to go and look at. The surface is not zoomed.
 //
 // Read only, the stage takes no focus: its keys all change what it holds.
+//
+// An element double-clicked is asked open (`open`, its id): what opening it
+// means — its editor, its page — is the page's.
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-stage',
 
-  emits: ['update:elements', 'update:links', 'update:selection', 'connect', 'connect-void', 'remove'],
+  emits: ['update:elements', 'update:links', 'update:selection', 'connect', 'connect-void', 'remove', 'open'],
 
   props: {
     elements: {

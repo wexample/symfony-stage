@@ -103,10 +103,6 @@
   }
 }
 
-.stage:not(.stage--readonly) .stage--element {
-  cursor: move;
-}
-
 .stage--element-default {
   height: 100%;
   overflow: hidden;
