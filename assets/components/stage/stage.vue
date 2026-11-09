@@ -68,11 +68,13 @@ const ZOOM_STEP = 1.2;
 // Read only, the stage takes no focus: its keys all change what it holds.
 //
 // An element double-clicked is asked open (`open`, its id): what opening it
-// means — its editor, its page — is the page's.
+// means — its editor, its page — is the page's. The surface double-clicked
+// asks for something new there (`create`, the point on the surface and on
+// the screen), as a link dropped on it does (`connect-void`).
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-stage',
 
-  emits: ['update:elements', 'update:links', 'update:selection', 'connect', 'connect-void', 'remove', 'open'],
+  emits: ['update:elements', 'update:links', 'update:selection', 'connect', 'connect-void', 'remove', 'open', 'create'],
 
   props: {
     elements: {
@@ -492,12 +494,19 @@ export default {
     // the double-click comes to the root whatever was under it — the element
     // read from the point.
     onDoubleClick(event) {
-      const id = document.elementFromPoint(event.clientX, event.clientY)
-        ?.closest('[data-stage-element]')
-        ?.getAttribute('data-stage-element');
+      const under = document.elementFromPoint(event.clientX, event.clientY);
+      const id = under?.closest('[data-stage-element]')?.getAttribute('data-stage-element');
 
       if (id) {
         this.$emit('open', id);
+      } else if (!this.readonly && !under?.closest(INTERACTIVE)) {
+        const rect = this.$refs.root.getBoundingClientRect();
+
+        this.$emit('create', {
+          ...this.toWorld(event),
+          left: event.clientX - rect.left,
+          top: event.clientY - rect.top
+        });
       }
     },
 
