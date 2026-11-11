@@ -96,6 +96,15 @@
   }
 }
 
+// What a link being drawn is found over: the link's own line, widened to a
+// stroke the pointer finds, and nothing seen of it.
+.stage--link-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: calc(var(--stage-link-width) + 12px);
+  pointer-events: stroke;
+}
+
 // The link being drawn: dashed, until it is dropped on a port.
 .stage--link--draft {
   stroke: var(--color-selected);

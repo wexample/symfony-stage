@@ -22,6 +22,15 @@
                   :class="[link.kind ? 'stage--link--' + link.kind : null, lightClass(link.id), { 'is-selected': isLinkSelected(link) }]"
                   :d="linkPath(link)"
                   :marker-end="arrows ? 'url(#' + markerId + ')' : null"></path>
+            {#- Over each link, unseen and wide enough to be pointed at: what
+                a link being drawn is found over (`draft.over`). -#}
+            <template v-if="linkable && !readonly">
+                <path v-for="link in drawnLinks"
+                      :key="link.id + '-hit'"
+                      class="stage--link-hit"
+                      :d="linkPath(link)"
+                      :data-stage-link="link.id"></path>
+            </template>
             {#- The link being drawn, from its port to the pointer; under the
                 connectors, a ring for each port, grown for the one it leaves
                 and the one it would end on. -#}
@@ -64,6 +73,7 @@
                  class="stage--link-handle"
                  :class="[lightClass(link.id), { 'stage--link-handle--removable': canRemove() }]"
                  :style="{ left: linkHandlePoint(link).x + 'px', top: linkHandlePoint(link).y + 'px' }"
+                 :data-stage-link="link.id"
                  data-stage-no-drag>
                 <slot name="link" :link="link">
                     <span class="stage--link-dot"></span>

@@ -257,9 +257,11 @@ export default {
       }
     },
 
-    // Changed by the page — loaded, reset —, not by a gesture under way.
+    // Changed by the page — loaded, reset —, not by a gesture moving items;
+    // a layer's gesture — a link drawn — moves none, and the page may change
+    // what the stage holds under it: a block opened where the link would land.
     elements(value) {
-      if (!this.gesture) {
+      if (!this.gesture || this.gesture.type === 'layer') {
         this.items = this.copy(value);
         this.dropMissingFromSelection();
         this.settled = Object.fromEntries(Object.keys(this.settled).filter((id) => this.items.some((item) => item.id === id)).map((id) => [id, true]));

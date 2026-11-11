@@ -40,13 +40,17 @@ const HANDLE_ROOM = 64;
 // — or in —, dragged, dropped on a way in — or out — of another item. The
 // layer adds no link: it asks the page (`connect`, `{ from, fromPort, to,
 // toPort }`). Dropped on no port, the link asks for what it would lead to
-// (`connect-void`, `{ from, fromPort, side, x, y, left, top }`).
+// (`connect-void`, `{ from, fromPort, side, x, y, left, top, over }`, `over`
+// the link it was dropped on, if one). While it is drawn the page is told
+// where it is (`draft`, the same with `overPort`, the port it would end on,
+// and `over`; null once it is dropped): what it opens where the link would
+// land — a block to be —, and folds while the link finds a port, is its own.
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-links-stage-links',
 
   inject: ['stage'],
 
-  emits: ['update:links', 'connect', 'connect-void', 'remove'],
+  emits: ['update:links', 'connect', 'connect-void', 'remove', 'draft'],
 
   props: {
     links: {
@@ -103,6 +107,8 @@ export default {
       draft: null,
       // The port under the pointer, its connector ringed.
       litPort: null,
+      // The link the one being drawn passes over.
+      draftLink: null,
       // While a link is drawn, the port it would end on if dropped now.
       draftTarget: null,
       markerId: buildUniqueId('stage-arrow')
@@ -158,9 +164,11 @@ export default {
   },
 
   watch: {
-    // Changed by the page, not by a gesture under way.
+    // Changed by the page — not by a gesture moving items; a layer's gesture
+    // — a link drawn — moves none, and the page may change the links under
+    // it, to what it opens where the link would land.
     links(value) {
-      if (!this.stage.gesture) {
+      if (!this.stage.gesture || this.stage.gesture.type === 'layer') {
         this.edges = this.copy(value);
       }
     }
@@ -293,11 +301,16 @@ export default {
 
       event.stopPropagation();
       this.draft = { from: port, x: port.x, y: port.y };
+      this.$emit('draft', this.draftPayload(port, event));
       this.stage.startGesture(event, {
         type: 'layer',
         onMove: (moveEvent) => {
+          const under = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+
           this.draft = { ...this.draft, ...this.stage.toWorld(moveEvent) };
-          this.draftTarget = this.portTarget(port, document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('[data-stage-grip]'))?.key ?? null;
+          this.draftTarget = this.portTarget(port, under?.closest('[data-stage-grip]'))?.key ?? null;
+          this.draftLink = under?.closest('[data-stage-link]')?.dataset.stageLink ?? null;
+          this.$emit('draft', this.draftPayload(port, moveEvent));
         },
         onUp: (upEvent, gesture) => {
           const under = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
@@ -311,8 +324,25 @@ export default {
 
           this.draft = null;
           this.draftTarget = null;
+          this.draftLink = null;
+          this.$emit('draft', null);
         }
       });
+    },
+
+    // Where the link being drawn stands: the port it leaves, the point it is
+    // at, the port it would end on and the link it passes over, if any.
+    draftPayload(port, event) {
+      const target = this.draftTarget ? this.drawnPorts.find((candidate) => candidate.key === this.draftTarget) : null;
+
+      return {
+        from: port.id,
+        fromPort: port.port,
+        side: port.side,
+        ...this.stage.toWorld(event),
+        overPort: target ? { id: target.id, port: target.port, side: target.side } : null,
+        over: this.draftLink
+      };
     },
 
     connectVoid(port, event) {
@@ -324,7 +354,8 @@ export default {
         side: port.side,
         ...this.stage.toWorld(event),
         left: event.clientX - rect.left,
-        top: event.clientY - rect.top
+        top: event.clientY - rect.top,
+        over: this.draftLink
       });
     },
 
