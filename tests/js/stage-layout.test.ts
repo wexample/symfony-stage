@@ -42,6 +42,15 @@ test('compact: a branch stands under what its own columns hold, not under a tall
   assert.deepEqual(places.get('e'), { x: 120, y: 120 });
 });
 
+test('the branches of a step in the order its items are given in, whatever the order of its links', () => {
+  const links = [{ from: 'a', to: 'b' }, { from: 'a', to: 'c' }];
+  const layout = stageLayoutFlow({ links, gapX: 20, gapY: 10 });
+
+  assert.deepEqual([layout([box('a'), box('b'), box('c')]).get('b')!.y, layout([box('a'), box('b'), box('c')]).get('c')!.y], [0, 50]);
+  // `c` given before `b`: on the step's row, `b` under it.
+  assert.deepEqual([layout([box('a'), box('c'), box('b')]).get('b')!.y, layout([box('a'), box('c'), box('b')]).get('c')!.y], [50, 0]);
+});
+
 test('a step fed by two lands one past the deepest; a loop is cut, not followed', () => {
   const places = stageLayoutFlow({ links: [{ from: 'a', to: 'b' }, { from: 'b', to: 'c' }, { from: 'a', to: 'c' }], gapX: 0, gapY: 0 })([box('a'), box('b'), box('c')]);
   assert.equal(places.get('c')!.x, 200);

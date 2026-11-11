@@ -111,7 +111,7 @@ export function stageLayoutColumns({ links, gapX = 64, gapY = 24, originX = 0, o
  * column of its depth — one past the deepest step feeding it —; the trunk on
  * the first row; a step's first follower on its row, each other one starting
  * a row of its own under the rows already taken, hooked to the step it
- * leaves. Columns as wide as their widest step, rows as tall as their tallest:
+ * leaves — its followers in the order the items are given in. Columns as wide as their widest step, rows as tall as their tallest:
  * a step opened in place pushes the columns after it and the rows under it.
  * `compact`: a row stands under what is above it in its own columns only —
  * from its first step to its last —, each step of a row still on one line.
@@ -132,6 +132,12 @@ export function stageLayoutFlow({ links, gapX = 64, gapY = 48, originX = 0, orig
       followers.get(link.from)!.push(link.to);
       feeders.get(link.to)!.push(link.from);
     });
+
+    // A step's followers in the order the items are given in, not the one
+    // their links were drawn in: the page orders the branches by ordering
+    // its items.
+    const order = new Map(items.map((item, index) => [item.id, index]));
+    followers.forEach((next) => next.sort((a, b) => order.get(a)! - order.get(b)!));
 
     const depth = stageLayoutDepths(items, kept);
 
