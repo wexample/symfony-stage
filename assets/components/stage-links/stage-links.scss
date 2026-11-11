@@ -125,15 +125,21 @@
   background: var(--border-color-strong);
 }
 
-// The button, on the stage's ground so the link does not run through it:
-// out of sight until the pointer comes to the handle, the dot going as it
-// shows; the error colour under the pointer, for what it is about to do.
-.stage--link-remove {
+// The button: a disc on the link, ringed in the link's colour as its
+// connectors are, on the stage's ground so the link does not run through it
+// — a mark of the diagram, not a form's button. Out of sight until the
+// pointer comes to the handle, the dot going as it shows; ring and icon in
+// the error colour under the pointer, for what it is about to do.
+.stage--link-remove.action-icon {
+  border: 2px solid var(--border-color-strong);
+  border-radius: 50%;
   background: var(--surface-zone);
+  color: var(--text-color-muted);
   opacity: 0;
 
   &:hover,
   &:focus-visible {
+    border-color: var(--error-9);
     color: var(--error-9);
   }
 }

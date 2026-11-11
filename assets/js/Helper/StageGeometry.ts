@@ -315,19 +315,24 @@ export function stageGeometryFanTurns(links: StageFanLink[], spacing = 6, gap = 
   return turns;
 }
 
-// Where a square link's handle stands: on the stretch it has alone — after
-// its turn when it shares where it leaves, before it when it shares where it
-// arrives —, halfway along it otherwise, or when that stretch is too short to
-// hold it.
+// Where a square link's handle stands: on one of the level stretches it
+// has alone — the one after its turn when it shares where it leaves, the one
+// before when it shares where it arrives, the longer of the two otherwise —,
+// halfway along it, where the handle reads as standing on the pipe between
+// the boxes. Both too short to hold it, the middle of its drop, between its
+// two turns; any other line, halfway along it by its length.
 export function stageGeometryHandlePoint(points: [number, number][], shared: 'start' | 'end' | null, minLength = 24): StagePoint {
-  if (points.length === 4 && shared) {
-    const [[ax, ay], [bx, by]] = shared === 'start' ? [points[2], points[3]] : [points[0], points[1]];
-
-    if (Math.hypot(bx - ax, by - ay) >= minLength) {
-      return { x: (ax + bx) / 2, y: (ay + by) / 2 };
-    }
+  if (points.length !== 4) {
+    return stageGeometryMidPoint(points);
   }
 
-  return stageGeometryMidPoint(points);
+  const stretches: [number, number][][] = [[points[0], points[1]], [points[2], points[3]]];
+  const level = (shared === 'start' ? [stretches[1]] : shared === 'end' ? [stretches[0]] : stretches)
+    .map((stretch) => ({ stretch, length: Math.hypot(stretch[1][0] - stretch[0][0], stretch[1][1] - stretch[0][1]) }))
+    .filter(({ length }) => length >= minLength)
+    .sort((a, b) => b.length - a.length);
+  const [[ax, ay], [bx, by]] = level.length ? level[0].stretch : [points[1], points[2]];
+
+  return { x: (ax + bx) / 2, y: (ay + by) / 2 };
 }
 

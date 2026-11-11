@@ -15,6 +15,10 @@ import { buildUniqueId } from '@wexample/js-helpers/Helper/Id';
 
 const T = 'WexampleSymfonyStageBundle.components.stage-links.stage-links::';
 
+// How long a level stretch of a link must be to hold its handle clear of the
+// connectors at both its ends: the handle, and a connector's width each side.
+const HANDLE_ROOM = 64;
+
 // The links between the items of a stage — a layer laid on it (its `layers`
 // slot) —, drawn under the items in their coordinates: `v-model:links`, each
 // `{ id, from, to }`, kept with the items in the stage's history, taken off
@@ -221,7 +225,7 @@ export default {
         return stageGeometryMidPoint(link.points);
       }
 
-      return stageGeometryHandlePoint(this.defaultLinkPoints(link), this.linkFans.get(link.id)?.shared ?? null);
+      return stageGeometryHandlePoint(this.defaultLinkPoints(link), this.linkFans.get(link.id)?.shared ?? null, HANDLE_ROOM);
     },
 
     defaultLinkPoints(link) {
