@@ -1,0 +1,43 @@
+/* Component: stage-regions */
+// The regions of a stage, a layer of it: bands under its items.
+@use '@wexample/symfony-design-system/css/mixins/writing';
+
+// A region under the elements: a band of the surface with its title in a head
+// of its own, read upwards along its left edge, as the label of a band reads —
+// a lane. The stage is the
+// frame: a line is drawn between two regions, none round them.
+.stage--region {
+  --stage-region-head: 1.75rem;
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.stage--region + .stage--region {
+  border-top: 1px solid var(--border-color-discreet);
+}
+
+.stage--region-title {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--stage-region-head);
+  box-sizing: border-box;
+  // A block, not a flex box: its text then wraps within the head's length.
+  display: block;
+  align-content: center;
+  padding-block: var(--space-2);
+  // Over the items the surface slides under it.
+  z-index: 3;
+  background: var(--surface-shell);
+  color: var(--text-color-muted);
+  font-size: var(--font-size-1);
+  font-weight: var(--font-weight-strong);
+  line-height: 1.1;
+  text-align: center;
+  // A long title takes a second line rather than being cut: two fit the head.
+  @include writing.vertical-text(up);
+  overflow: hidden;
+}
+

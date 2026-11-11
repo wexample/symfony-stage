@@ -3,18 +3,8 @@ import StageHistory from '../../js/Class/StageHistory';
 import {
   stageGeometryBoxFromCorners,
   stageGeometryBounds,
-  stageGeometryFanTurns,
-  stageGeometryHandlePoint,
   stageGeometryIntersects,
-  stageGeometryLabelPoint,
-  stageGeometryLinkEnds,
-  stageGeometryLength,
-  stageGeometryLinkPath,
-  stageGeometryMidPoint,
-  stageGeometryPolyline,
-  stageGeometryRoundedPath,
-  stageGeometrySnap,
-  stageGeometryStepPoints
+  stageGeometrySnap
 } from '../../js/Helper/StageGeometry';
 import { buildUniqueId } from '@wexample/js-helpers/Helper/Id';
 
@@ -34,62 +24,61 @@ const NUDGE_FAR = 5;
 // How much a press of the zoom, or a notch of Ctrl and the wheel, scales.
 const ZOOM_STEP = 1.2;
 
-// A surface the pointer moves — and scales, when `zoomable` —, and elements
-// laid on it: picked, dragged, linked, removed, and every change undone and
-// done again.
+// A neutral surface: what it holds placed on it, moved — and scaled, when
+// `zoomable` —, picked, dragged, removed, every change undone and done again.
+// It draws nothing of its own between what it holds: what joins them, what
+// lies under them — links, regions, ribbons — is drawn by the layers the page
+// lays on it (`layers` slot: stage-links, stage-regions, its own), each told
+// where the items stand, how big they are and what the pointer does.
 //
-// The elements are the page's own — `v-model:elements`, each a box `{ id, x,
-// y, width, height }` with whatever else the page keeps on it — and so are the
-// links between them, `v-model:links`, `{ id, from, to }`. The stage draws
-// them, knows nothing of what they mean, and hands back each change once it is
-// made. What an element looks like is the page's too: the `element` slot,
-// given the element and whether it is selected, draws it as any markup — a
-// card, a form, a chart.
+// The items are the page's own — `v-model:elements`, each a box `{ id, x, y,
+// width, height }` with whatever else the page keeps on it. What an item looks
+// like is the page's too: the `element` slot, given the item and whether it is
+// selected, draws it as any markup — a card, a form, a chart, a canvas.
 //
-// An element may declare its ports (`ports`, `[{ id, side, y }]`): where, down
-// its left edge (`side: 'in'`) or its right one (`side: 'out'`), a link meets
-// it — the outputs of a step listed on its card. A link names the ports it
-// joins (`fromPort`, `toPort`); one naming none meets the middle of the edge.
+// Where they stand is the page's (their `x`, `y`), or a layout's (`layout`, a
+// function of the items and the size each takes, StageLayout): the stage
+// measures each item, and lays them again whenever one grows — an item opened
+// in place pushes the others. Under a layout, an item is not dragged.
 //
-// A link may carry its own route (`points`, `[[x, y], …]`), a `label` drawn on
-// it and a `kind` the page styles it by (`stage--link--<kind>`). The `link`
-// slot lays the page's markup on each link, halfway along it: a handle, a
-// button taking it off. Regions
-// (`regions`, `{ id, x, y, width, height, title, kind }`) are drawn under
-// everything — the lanes of a process, the days of a planning —, a title in
-// their head. `highlighted` lights some elements and links and dims the rest:
-// a path walked, a search.
+// An item keeps its own gestures — a list scrolling, a 3D view turning —
+// where its markup says so (`data-stage-no-drag`): the surface neither moves
+// nor scrolls under them.
 //
 // `axis: 'x'` keeps the surface on its line, as a timeline is: it moves
-// sideways only. `bounded` stops it where what it holds does, its first
-// element or region at the edge, its last one at the other: nothing is ever
-// drawn past them to go and look at. The surface is not zoomed.
+// sideways only. `bounded` stops it where what it holds does. `highlighted`
+// lights some ids and dims the rest, items and what the layers draw alike.
 //
 // Read only, the stage takes no focus: its keys all change what it holds.
 //
-// An element double-clicked is asked open (`open`, its id): what opening it
+// An item double-clicked is asked open (`open`, its id): what opening it
 // means — its editor, its page — is the page's. The surface double-clicked
 // asks for something new there (`create`, the point on the surface and on
-// the screen), as a link dropped on it does (`connect-void`).
+// the screen).
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-stage',
 
-  emits: ['update:elements', 'update:links', 'update:selection', 'connect', 'connect-void', 'remove', 'open', 'create'],
+  emits: ['update:elements', 'update:selection', 'remove', 'open', 'create'],
+
+  // What the layers read and call: the stage itself — its placed items, its
+  // pan and zoom, its gestures, its history.
+  provide() {
+    return { stage: this };
+  },
 
   props: {
     elements: {
       type: Array,
       default: () => []
     },
-    links: {
-      type: Array,
-      default: () => []
+    // How the items are laid: a function `(items, sizes) => Map<id, { x, y }>`
+    // (StageLayout), the items handed with the size each takes. None, they
+    // stand where their own `x` and `y` put them.
+    layout: {
+      type: Function,
+      default: null
     },
-    regions: {
-      type: Array,
-      default: () => []
-    },
-    // Ids of elements and links lit; the others dimmed while any is.
+    // Ids lit — items, and what the layers draw —; the others dimmed while any is.
     highlighted: {
       type: Array,
       default: () => []
@@ -129,54 +118,6 @@ export default {
       type: Boolean,
       default: false
     },
-    // How a link is drawn between two elements: a curve (`curve`), or square
-    // with rounded corners (`step`), as a wiring diagram draws it.
-    linkShape: {
-      type: String,
-      default: 'curve'
-    },
-    // How round a square link's corners are, in pixels (`step`).
-    linkRadius: {
-      type: Number,
-      default: 8
-    },
-    // How far apart, in pixels, the square links leaving one port — or
-    // reaching one — turn, so that they do not run down the same line
-    // (`step`, stageGeometryFanTurns); 0 lets them.
-    linkFanSpacing: {
-      type: Number,
-      default: 6
-    },
-    // Whether a link ends on an arrow.
-    linkArrows: {
-      type: Boolean,
-      default: true
-    },
-    // Whether a link's ends are marked on the edges it leaves and reaches: a
-    // round connector, half of it under the element.
-    linkConnectors: {
-      type: Boolean,
-      default: false
-    },
-    // Whether a link is drawn from one port to another (`ports`): pressed on a
-    // way out — or in —, dragged, dropped on a way in — or out — of another
-    // element. The stage adds no link: it asks the page (`connect`, `{ from,
-    // fromPort, to, toPort }`), which keeps it or not and hands the links back.
-    // Dropped on no port, the link asks for what it would lead to
-    // (`connect-void`, `{ from, fromPort, side, x, y, left, top }`): where it
-    // was dropped, on the surface (`x`, `y`) and in the stage (`left`, `top`)
-    // — a new element, picked there.
-    linkable: {
-      type: Boolean,
-      default: false
-    },
-    // How long a link must be to hold the page's handle (`link` slot), in
-    // pixels: on a shorter one — two boxes almost touching — none is laid,
-    // it would cover the link it marks.
-    linkHandleMinLength: {
-      type: Number,
-      default: 0
-    },
     zoomMin: {
       type: Number,
       default: 0.25
@@ -198,22 +139,18 @@ export default {
   data() {
     return {
       items: this.copy(this.elements),
-      edges: this.copy(this.links),
       selection: [],
+      // The size each item takes, as measured, by its id.
+      sizes: {},
+      // What the layers hand the stage: their state, what they hold.
+      layers: [],
       pan: { x: 0, y: 0 },
       // The surface's scale: 1 draws it at its size.
       zoom: 1,
       gesture: null,
       marquee: null,
-      // The link being drawn from a port: where it leaves, where the pointer is.
-      draft: null,
-      // The port under the pointer, its connector ringed.
-      litPort: null,
-      // While a link is drawn, the port it would end on if dropped now.
-      draftTarget: null,
       canUndo: false,
-      canRedo: false,
-      markerId: buildUniqueId('stage-arrow')
+      canRedo: false
     };
   },
 
@@ -243,51 +180,20 @@ export default {
         : {};
     },
 
+    // The items where they stand — their own place, or the layout's —, each
+    // with the height it takes when it says none.
+    placed() {
+      const laid = this.layout ? this.layout(this.items.map((item) => ({ ...item, ...this.sizeOf(item) })), this.sizes) : null;
+
+      return this.items.map((item) => {
+        const at = laid?.get(item.id);
+
+        return { ...item, ...(at ? { x: at.x, y: at.y } : {}), height: item.height || this.sizes[item.id]?.height || 0 };
+      });
+    },
+
     byId() {
-      return Object.fromEntries(this.items.map((item) => [item.id, item]));
-    },
-
-    // A link whose ends are not both on the stage is not drawn.
-    drawnLinks() {
-      return this.edges.filter((link) => this.byId[link.from] && this.byId[link.to]);
-    },
-
-    // Where each square link turns, which end it shares with others and how
-    // far out it loops round, by its id: a link routed by the page follows
-    // its own points.
-    linkFans() {
-      if (this.linkShape !== 'step' || !this.linkFanSpacing) {
-        return new Map();
-      }
-
-      return stageGeometryFanTurns(
-        this.drawnLinks
-          .filter((link) => !link.points)
-          .map((link) => {
-            const [start, end] = this.linkEnds(link);
-
-            return { id: link.id, start, end, from: this.boxOf(this.byId[link.from]), to: this.boxOf(this.byId[link.to]) };
-          }),
-        this.linkFanSpacing
-      );
-    },
-
-    // The links long enough to hold the page's handle.
-    handledLinks() {
-      return this.drawnLinks.filter((link) => stageGeometryLength(link.points ?? this.defaultLinkPoints(link)) >= this.linkHandleMinLength);
-    },
-
-    // Every port declared, linked or not, where it stands on its element's
-    // edge: what a connector marks.
-    drawnPorts() {
-      return this.items.flatMap((item) => (item.ports ?? []).map((port) => ({
-        key: `${item.id}-${port.side}-${port.id}`,
-        id: item.id,
-        port: port.id,
-        side: port.side,
-        x: port.side === 'in' ? item.x : item.x + item.width,
-        y: item.y + port.y
-      })));
+      return Object.fromEntries(this.placed.map((item) => [item.id, item]));
     },
 
     resolvedLabel() {
@@ -302,17 +208,13 @@ export default {
         this.items = this.copy(value);
         this.dropMissingFromSelection();
       }
-    },
-
-    links(value) {
-      if (!this.gesture) {
-        this.edges = this.copy(value);
-      }
     }
   },
 
   created() {
     this.history = new StageHistory();
+    // Each item measured as it is drawn and whenever it changes size.
+    this.sizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver((entries) => this.onResize(entries));
   },
 
   mounted() {
@@ -329,6 +231,8 @@ export default {
       enabled: () => this.hasFocus()
     });
 
+    this.observeItems();
+
     ['Delete', 'Backspace'].forEach((key) => on(key, () => this.removeSelected()));
     on('Escape', () => this.select([]));
     shortcut('Mod+A', () => this.select(this.items.map((item) => item.id)));
@@ -341,8 +245,13 @@ export default {
     });
   },
 
+  updated() {
+    this.observeItems();
+  },
+
   beforeUnmount() {
     this.app.services.keyboard.unregisterOwner(this);
+    this.sizeObserver?.disconnect();
     this.endGesture();
   },
 
@@ -367,9 +276,6 @@ export default {
       return this.selection.includes(item.id);
     },
 
-    isLinkSelected(link) {
-      return this.selection.includes(link.from) && this.selection.includes(link.to);
-    },
 
     // Lit, dimmed, or neither when nothing is lit.
     lightClass(id) {
@@ -380,103 +286,102 @@ export default {
       return this.highlighted.includes(id) ? 'is-highlighted' : 'is-dimmed';
     },
 
-    linkLabelPoint(link) {
-      return stageGeometryLabelPoint(link.points ?? this.defaultLinkPoints(link));
-    },
 
-    // Where the page's handle on a link stands: halfway along it, or on the
-    // stretch it has alone when it shares an end with others — their handles
-    // would stand on one another.
-    linkHandlePoint(link) {
-      if (link.points) {
-        return stageGeometryMidPoint(link.points);
-      }
 
-      return stageGeometryHandlePoint(this.defaultLinkPoints(link), this.linkFans.get(link.id)?.shared ?? null);
-    },
 
-    defaultLinkPoints(link) {
-      const from = this.boxOf(this.byId[link.from]);
-      const to = this.boxOf(this.byId[link.to]);
 
-      if (this.linkShape === 'step') {
-        const fan = this.linkFans.get(link.id);
 
-        return stageGeometryStepPoints(from, to, undefined, this.linkAnchors(link), fan?.turn ?? null, fan?.loop ?? 0);
-      }
 
-      return stageGeometryLinkEnds(from, to, this.linkAnchors(link)).map(({ x, y }) => [x, y]);
-    },
-
-    // Where a link's ends stand, for its connectors.
-    linkEnds(link) {
-      return stageGeometryLinkEnds(this.boxOf(this.byId[link.from]), this.boxOf(this.byId[link.to]), this.linkAnchors(link));
-    },
-
-    // How far down each element a link meets it: at the ports it names.
-    linkAnchors(link) {
-      return {
-        from: this.portY(this.byId[link.from], 'out', link.fromPort),
-        to: this.portY(this.byId[link.to], 'in', link.toPort)
-      };
-    },
-
-    portY(item, side, id) {
-      return id == null ? undefined : item.ports?.find((port) => port.side === side && port.id === id)?.y;
+    // The item itself, as the page keeps it — not its placed copy.
+    itemOf(id) {
+      return this.items.find((item) => item.id === id);
     },
 
     boxOf(item) {
       return { ...item, height: item.height || 0 };
     },
 
-    regionStyle(region) {
-      return {
-        left: `${region.x}px`,
-        top: `${region.y}px`,
-        width: `${region.width}px`,
-        height: `${region.height}px`
-      };
+    // What a layout is told of an item: the size it takes, its own when it
+    // says one.
+    sizeOf(item) {
+      const measured = this.sizes[item.id] ?? {};
+
+      return { width: item.width || measured.width || 0, height: item.height || measured.height || 0 };
     },
 
-    // A region's title stays against the stage's left edge while the surface
-    // moves past it, as long as the region is in view: a lane followed far
-    // along is still named.
-    regionTitleStyle(region) {
-      const behind = Math.max(0, -(this.pan.x + region.x));
+    // Every item's box watched for its size: an item opened grows, and the
+    // layout lays the others again around it.
+    observeItems() {
+      if (!this.sizeObserver || !this.$refs.root) {
+        return;
+      }
 
-      return behind ? { left: `${Math.max(0, Math.min(behind, region.width - 32))}px` } : null;
+      this.$refs.root.querySelectorAll('[data-stage-element]').forEach((el) => {
+        if (!el.dataset.stageObserved) {
+          el.dataset.stageObserved = '1';
+          this.sizeObserver.observe(el);
+        }
+      });
     },
 
+    onResize(entries) {
+      const sizes = { ...this.sizes };
+      let changed = false;
+
+      entries.forEach((entry) => {
+        const id = entry.target.dataset.stageElement;
+        const box = entry.borderBoxSize?.[0];
+        const size = {
+          width: Math.round(box ? box.inlineSize : entry.target.offsetWidth),
+          height: Math.round(box ? box.blockSize : entry.target.offsetHeight)
+        };
+
+        if (id && (sizes[id]?.width !== size.width || sizes[id]?.height !== size.height)) {
+          sizes[id] = size;
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        this.sizes = sizes;
+      }
+    },
+
+    // --- What the layers ask of the stage.
+
+    // A layer laid on the stage: `{ name, getState, setState, emitState,
+    // onRemoved(ids), onMoved(ids), boxes() }`, each optional but its name —
+    // its state in the history, what it says of a removal and a move, what
+    // it holds when the surface is bounded.
+    registerLayer(layer) {
+      this.layers = [...this.layers.filter((other) => other.name !== layer.name), layer];
+    },
+
+    unregisterLayer(name) {
+      this.layers = this.layers.filter((layer) => layer.name !== name);
+    },
+
+    // A change a layer made: written down to be undone, told to the page.
+    commitLayers(before) {
+      this.commit(before);
+    },
+
+
+
+    // Placed where it stands — by the page, or by the layout —, as wide as
+    // it says or as its markup takes, as tall as it says or as it grows.
     elementStyle(item) {
+      const own = this.items.find((candidate) => candidate.id === item.id);
+
       return {
         left: `${item.x}px`,
         top: `${item.y}px`,
-        width: `${item.width}px`,
-        height: item.height ? `${item.height}px` : null
+        width: own?.width ? `${own.width}px` : null,
+        height: own?.height ? `${own.height}px` : null
       };
     },
 
-    // A route of its own is followed while neither end has moved since it
-    // was drawn; once one has, the link is drawn afresh between them.
-    linkPath(link) {
-      if (link.points && !this.movedSinceRouted(link)) {
-        return stageGeometryPolyline(link.points);
-      }
 
-      return this.linkShape === 'step'
-        ? stageGeometryRoundedPath(this.defaultLinkPoints(link), this.linkRadius)
-        : stageGeometryLinkPath(this.byId[link.from], this.byId[link.to], this.linkAnchors(link));
-    },
-
-    // Moving under the pointer right now: the route waits for the drop to be
-    // dropped, and the link follows the element meanwhile.
-    movedSinceRouted(link) {
-      const moving = this.gesture?.type === 'move' && this.gesture.moved
-        ? this.gesture.origins.map((origin) => origin.id)
-        : [];
-
-      return moving.includes(link.from) || moving.includes(link.to);
-    },
 
     // Where a pointer stands on the surface rather than on the screen.
     toWorld(event) {
@@ -515,16 +420,6 @@ export default {
         return;
       }
 
-      const portEl = event.target.closest('[data-stage-port]');
-
-      if (portEl) {
-        const port = this.drawnPorts.find((candidate) => candidate.key === portEl.dataset.stagePort);
-        this.startGesture(event, { type: 'connect', port });
-        this.draft = { from: port, x: port.x, y: port.y };
-
-        return;
-      }
-
       const elementEl = event.target.closest('[data-stage-element]');
       const additive = event.ctrlKey || event.metaKey || event.shiftKey;
 
@@ -543,7 +438,8 @@ export default {
           this.select([id]);
         }
 
-        if (!this.readonly && this.selection.includes(id)) {
+        // Under a layout, an item stands where the layout puts it.
+        if (!this.readonly && !this.layout && this.selection.includes(id)) {
           this.startGesture(event, {
             type: 'move',
             before: this.state(),
@@ -609,17 +505,15 @@ export default {
       } else if (gesture.type === 'move') {
         // The pointer travels on the screen, the elements on the surface.
         gesture.origins.forEach((origin) => {
-          const item = this.byId[origin.id];
+          const item = this.itemOf(origin.id);
           item.x = stageGeometrySnap(origin.x + dx / this.zoom, this.grid);
           item.y = stageGeometrySnap(origin.y + dy / this.zoom, this.grid);
         });
-      } else if (gesture.type === 'connect') {
-        this.draft = { ...this.draft, ...this.toWorld(event) };
-        // The pointer held by the stage, the port under it is looked for.
-        this.draftTarget = this.portTarget(gesture.port, document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-stage-port]'))?.key ?? null;
+      } else if (gesture.type === 'layer') {
+        gesture.onMove?.(event, gesture);
       } else if (gesture.type === 'marquee') {
         this.marquee = stageGeometryBoxFromCorners(gesture.start, this.toWorld(event));
-        const picked = this.items.filter((item) => stageGeometryIntersects(this.marquee, { ...item, height: item.height || 0 }));
+        const picked = this.placed.filter((item) => stageGeometryIntersects(this.marquee, { ...item, height: item.height || 0 }));
         this.select([...new Set([...gesture.base, ...picked.map((item) => item.id)])]);
       }
     },
@@ -632,21 +526,10 @@ export default {
       }
 
       if (gesture.type === 'move' && gesture.moved) {
-        this.forgetRoutes(gesture.origins.map((origin) => origin.id));
+        this.layers.forEach((layer) => layer.onMoved?.(gesture.origins.map((origin) => origin.id)));
         this.commit(gesture.before);
-      } else if (gesture.type === 'connect') {
-        const under = document.elementFromPoint(event.clientX, event.clientY);
-        const targetEl = under?.closest('[data-stage-port]');
-
-        if (targetEl) {
-          this.connectTo(gesture.port, targetEl);
-        } else if (gesture.moved && !under?.closest('[data-stage-element]')) {
-          // On the surface itself: an element dropped on leads nowhere.
-          this.connectVoid(gesture.port, event);
-        }
-
-        this.draft = null;
-        this.draftTarget = null;
+      } else if (gesture.type === 'layer') {
+        gesture.onUp?.(event, gesture);
       } else if (gesture.type === 'pan' && !gesture.moved) {
         // A press on the surface that went nowhere: nothing is picked any more.
         this.select([]);
@@ -655,65 +538,11 @@ export default {
       this.endGesture();
     },
 
-    // A link dropped where no port is: the page asked what it leads to.
-    connectVoid(port, event) {
-      const rect = this.$refs.root.getBoundingClientRect();
 
-      this.$emit('connect-void', {
-        from: port.id,
-        fromPort: port.port,
-        side: port.side,
-        ...this.toWorld(event),
-        left: event.clientX - rect.left,
-        top: event.clientY - rect.top
-      });
-    },
 
-    // The port of this grip, when a link drawn from `port` may end on it: of
-    // the other side, on another element.
-    portTarget(port, targetEl) {
-      const target = targetEl && this.drawnPorts.find((candidate) => candidate.key === targetEl.dataset.stagePort);
 
-      return target && target.side !== port.side && target.id !== port.id ? target : null;
-    },
 
-    // Grown: the port a link is drawn from, and the one it would end on.
-    isPortGrown(port) {
-      return Boolean(this.draft) && (port.key === this.draft.from.key || port.key === this.draftTarget);
-    },
 
-    // Ringed: the port under the pointer, and while a link is drawn, those of
-    // the other side it may end on.
-    isPortLit(port) {
-      if (this.draft) {
-        return port.side !== this.draft.from.side && port.id !== this.draft.from.id;
-      }
-
-      return port.key === this.litPort;
-    },
-
-    // A port dropped on another of the other side, on another element: the
-    // page asked for the link, out to in, whichever end it was drawn from.
-    connectTo(port, targetEl) {
-      const target = this.portTarget(port, targetEl);
-
-      if (!target) {
-        return;
-      }
-
-      const [from, to] = port.side === 'out' ? [port, target] : [target, port];
-
-      this.$emit('connect', { from: from.id, fromPort: from.port, to: to.id, toPort: to.port });
-    },
-
-    // The link being drawn, square as the others, from its port to the
-    // pointer: out of the right edge from a way out, of the left from a way in.
-    draftPath() {
-      const { from, x, y } = this.draft;
-      const middle = Math.round((from.x + x) / 2);
-
-      return stageGeometryRoundedPath([[from.x, from.y], [middle, from.y], [middle, y], [x, y]], this.linkRadius);
-    },
 
     // A wheel moves the surface; on a line of its own, either way of the
     // wheel moves it along that line.
@@ -768,13 +597,13 @@ export default {
       this.pan = pan;
     },
 
-    // Within what the stage holds, when bounded — its elements, its regions,
-    // the routes of its links: a surface smaller than the stage stays at its
-    // start.
+    // Within what the stage holds, when bounded — its items, and what its
+    // layers hold: regions, the routes of links —: a surface smaller than the
+    // stage stays at its start.
     clampPan(pan) {
-      const points = this.drawnLinks.flatMap((link) => link.points ?? []).map(([x, y]) => ({ x, y, width: 0, height: 0 }));
+      const boxes = this.layers.flatMap((layer) => layer.boxes?.() ?? []);
       const bounds = this.bounded
-        ? stageGeometryBounds([...this.items, ...this.regions, ...points].map((box) => ({ ...box, height: box.height || 0 })))
+        ? stageGeometryBounds([...this.placed, ...boxes].map((box) => ({ ...box, height: box.height || 0 })))
         : null;
 
       if (!bounds) {
@@ -792,8 +621,12 @@ export default {
 
     // --- What changes the stage, written down to be undone.
 
+    // The items, and what each layer keeps (a layer's links).
     state() {
-      return { elements: this.copy(this.items), links: this.copy(this.edges) };
+      return {
+        elements: this.copy(this.items),
+        layers: Object.fromEntries(this.layers.filter((layer) => layer.getState).map((layer) => [layer.name, layer.getState()]))
+      };
     },
 
     // A change made: the state before it goes to the history, the state after
@@ -810,12 +643,16 @@ export default {
       this.canUndo = this.history.canUndo();
       this.canRedo = this.history.canRedo();
       this.$emit('update:elements', this.copy(this.items));
-      this.$emit('update:links', this.copy(this.edges));
+      this.layers.forEach((layer) => layer.emitState?.());
     },
 
     restore(state) {
       this.items = state.elements;
-      this.edges = state.links;
+      this.layers.forEach((layer) => {
+        if (layer.setState && state.layers && layer.name in state.layers) {
+          layer.setState(state.layers[layer.name]);
+        }
+      });
       this.dropMissingFromSelection();
       this.emitState();
     },
@@ -857,7 +694,7 @@ export default {
     },
 
     nudge(x, y, far) {
-      if (this.readonly) {
+      if (this.readonly || this.layout) {
         return;
       }
 
@@ -865,24 +702,14 @@ export default {
       const before = this.state();
 
       this.selection.forEach((id) => {
-        this.byId[id].x += x * step;
-        this.byId[id].y += y * step;
+        this.itemOf(id).x += x * step;
+        this.itemOf(id).y += y * step;
       });
 
-      this.forgetRoutes(this.selection);
-
+      this.layers.forEach((layer) => layer.onMoved?.([...this.selection]));
       this.commit(before);
     },
 
-    // A link's own route no longer fits once an end has moved: it is dropped,
-    // and the link drawn afresh between its ends.
-    forgetRoutes(ids) {
-      this.edges.forEach((link) => {
-        if (link.points && (ids.includes(link.from) || ids.includes(link.to))) {
-          delete link.points;
-        }
-      });
-    },
 
     removeSelected() {
       if (this.readonly || !this.selection.length) {
@@ -899,7 +726,7 @@ export default {
       const removed = new Set(this.selection);
 
       this.items = this.items.filter((item) => !removed.has(item.id));
-      this.edges = this.edges.filter((link) => !removed.has(link.from) && !removed.has(link.to));
+      this.layers.forEach((layer) => layer.onRemoved?.([...removed]));
       this.select([]);
       this.commit(before);
     },
@@ -922,24 +749,11 @@ export default {
       return item;
     },
 
-    link(from, to) {
-      if (from === to || this.edges.some((link) => link.from === from && link.to === to)) {
-        return null;
-      }
-
-      const before = this.state();
-      const link = { id: buildUniqueId('stage-link'), from, to };
-
-      this.edges.push(link);
-      this.commit(before);
-
-      return link;
-    },
 
     // The surface moved so that what it holds stands in the middle of the
     // stage — on the line it moves along, with an `x` axis.
     center() {
-      const bounds = stageGeometryBounds(this.items.map((item) => ({ ...item, height: item.height || 0 })));
+      const bounds = stageGeometryBounds(this.placed.map((item) => ({ ...item, height: item.height || 0 })));
       const root = this.$refs.root;
 
       if (!bounds || !root) {
@@ -1003,7 +817,7 @@ export default {
     // The surface scaled so that what it holds fits in the stage, a step in
     // from its edges — within the zoom's bounds —, and brought to its middle.
     zoomToFit() {
-      const bounds = stageGeometryBounds(this.items.map((item) => ({ ...item, height: item.height || 0 })));
+      const bounds = stageGeometryBounds(this.placed.map((item) => ({ ...item, height: item.height || 0 })));
       const root = this.$refs.root;
       const margin = 2 * (this.grid > 0 ? this.grid : 16);
 
@@ -1022,7 +836,7 @@ export default {
     // The surface moved so that what it holds starts at its top left corner,
     // a step in.
     fit() {
-      const bounds = stageGeometryBounds(this.items.map((item) => ({ ...item, height: item.height || 0 })));
+      const bounds = stageGeometryBounds(this.placed.map((item) => ({ ...item, height: item.height || 0 })));
       const margin = this.grid > 0 ? this.grid : 16;
 
       this.pan = bounds

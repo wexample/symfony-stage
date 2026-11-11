@@ -17,86 +17,16 @@
          @dblclick="onDoubleClick"
          @wheel="onWheel">
         <div class="stage--world" :style="worldStyle">
-            {#- Under everything: the regions — lanes, days —, a title in their
-                head; an empty title draws the head alone, none draws none. -#}
-            <div v-for="region in regions"
-                 :key="region.id"
-                 class="stage--region"
-                 :class="region.kind ? 'stage--region--' + region.kind : null"
-                 :style="regionStyle(region)">
-                <span v-if="region.title != null" class="stage--region-title" :style="regionTitleStyle(region)">[[ region.title ]]</span>
-            </div>
+            {#- What the page lays on the surface besides its items — links,
+                regions, ribbons —, each layer told where the items stand
+                (stage-links, stage-regions): under the items by default, a
+                layer raising what must stand over them. -#}
+            <slot name="layers"></slot>
 
-            {#- The links under the elements, in the same coordinates: an SVG of
-                no size of its own, drawing past its box. -#}
-            <svg class="stage--links" aria-hidden="true">
-                <defs>
-                    <marker :id="markerId" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-                        <path d="M 0 0 L 10 5 L 0 10 z" class="stage--arrow"></path>
-                    </marker>
-                </defs>
-                <path v-for="link in drawnLinks"
-                      :key="link.id"
-                      class="stage--link"
-                      :class="[link.kind ? 'stage--link--' + link.kind : null, lightClass(link.id), { 'is-selected': isLinkSelected(link) }]"
-                      :d="linkPath(link)"
-                      :marker-end="linkArrows ? 'url(#' + markerId + ')' : null"></path>
-                {#- Its ends marked on the edges, half of each round under the
-                    element it touches (`linkConnectors`); so is every port an
-                    element declares, a link waiting for it or not. -#}
-                {#- The link being drawn, from its port to the pointer; the port
-                    it leaves and the one it would end on ringed wider, over the
-                    link, under their connectors — a ring under each port, grown
-                    for those two. -#}
-                <path v-if="draft" class="stage--link stage--link--draft" :d="draftPath()"></path>
-                <template v-if="linkConnectors && linkable && !readonly">
-                    <circle v-for="port in drawnPorts"
-                            :key="port.key + '-ring'"
-                            class="stage--connector-ring"
-                            :class="{ 'is-grown': isPortGrown(port) }"
-                            :cx="port.x" :cy="port.y"></circle>
-                </template>
-                <template v-if="linkConnectors">
-                    <circle v-for="port in drawnPorts"
-                            :key="port.key"
-                            class="stage--connector"
-                            :class="[lightClass(port.id), { 'is-selected': selection.includes(port.id), 'is-lit': isPortLit(port) }]"
-                            :cx="port.x" :cy="port.y"></circle>
-                    <template v-for="link in drawnLinks" :key="link.id + '-ends'">
-                        <circle v-for="(end, index) in linkEnds(link)"
-                                :key="index"
-                                class="stage--connector"
-                                :class="[lightClass(link.id), { 'is-selected': isLinkSelected(link) }]"
-                                :cx="end.x" :cy="end.y"></circle>
-                    </template>
-                </template>
-            </svg>
-
-            {#- A link's word, where its line has room for it. -#}
-            <span v-for="link in drawnLinks.filter((link) => link.label)"
-                  :key="link.id + '-label'"
-                  class="stage--link-label"
-                  :class="lightClass(link.id)"
-                  :style="{ left: linkLabelPoint(link).x + 'px', top: linkLabelPoint(link).y + 'px' }">[[ link.label ]]</span>
-
-            {#- What the page lays on a link, halfway along it — a handle, the
-                actions on it (`link` slot) —: answering as any
-                markup does, not a grip of the surface. -#}
-            <template v-if="$slots.link">
-                <div v-for="link in handledLinks"
-                     :key="link.id + '-handle'"
-                     class="stage--link-handle"
-                     :class="lightClass(link.id)"
-                     :style="{ left: linkHandlePoint(link).x + 'px', top: linkHandlePoint(link).y + 'px' }"
-                     data-stage-no-drag>
-                    <slot name="link" :link="link"></slot>
-                </div>
-            </template>
-
-            <div v-for="item in items"
+            <div v-for="item in placed"
                  :key="item.id"
                  class="stage--element"
-                 :class="[item.kind ? 'stage--element--' + item.kind : null, lightClass(item.id), { 'is-selected': isSelected(item) }]"
+                 :class="[item.kind ? 'stage--element--' + item.kind : null, lightClass(item.id), { 'is-selected': isSelected(item), 'is-laid': layout }]"
                  :style="elementStyle(item)"
                  :data-stage-element="item.id">
                 <slot name="element" :element="item" :selected="isSelected(item)">
@@ -104,18 +34,6 @@
                 </slot>
             </div>
 
-            {#- What a link is drawn from and dropped on (`linkable`): a grip
-                over each port's connector, over the elements. -#}
-            <template v-if="linkable && !readonly">
-                <span v-for="port in drawnPorts"
-                      :key="port.key + '-grip'"
-                      class="stage--port"
-                      :class="'stage--port--' + port.side"
-                      :style="{ left: port.x + 'px', top: port.y + 'px' }"
-                      :data-stage-port="port.key"
-                      @pointerenter="litPort = port.key"
-                      @pointerleave="litPort = null"></span>
-            </template>
         </div>
 
         <div v-if="marquee" class="stage--marquee" :style="marqueeStyle"></div>

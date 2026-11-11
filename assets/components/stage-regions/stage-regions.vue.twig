@@ -1,0 +1,15 @@
+{%- extends '@WexampleSymfonyDesignSystemBundle/components/_abstract/vue/vue.vue.twig' -%}
+
+{#- Laid in a stage's `layers` slot, under its items: an empty title draws the
+    head alone, none draws none. -#}
+{%- block vue_body -%}
+    <div class="stage-regions">
+        <div v-for="region in regions"
+             :key="region.id"
+             class="stage--region"
+             :class="region.kind ? 'stage--region--' + region.kind : null"
+             :style="regionStyle(region)">
+            <span v-if="region.title != null" class="stage--region-title" :style="regionTitleStyle(region)">[[ region.title ]]</span>
+        </div>
+    </div>
+{%- endblock -%}

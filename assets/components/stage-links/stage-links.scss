@@ -1,0 +1,132 @@
+/* Component: stage-links */
+// The links of a stage, a layer of it: under its items, in their coordinates.
+@use '@wexample/symfony-design-system/css/mixins/transition';
+
+.stage--links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  // The reset holds an svg to its parent's width, and the world has none.
+  max-width: none;
+  overflow: visible;
+  pointer-events: none;
+}
+
+// A page dresses its links with these: how thick a link is, how wide its
+// connectors.
+.stage {
+  --stage-link-width: 2px;
+  --stage-connector-radius: 5px;
+}
+
+.stage--link {
+  fill: none;
+  stroke: var(--border-color-strong);
+  stroke-width: var(--stage-link-width);
+
+  &.is-selected {
+    stroke: var(--color-selected);
+  }
+}
+
+// A link's end on an element's edge, half hidden under it.
+.stage--connector {
+  fill: var(--border-color-strong);
+  r: var(--stage-connector-radius);
+
+  &.is-selected {
+    fill: var(--color-selected);
+  }
+}
+
+.stage--arrow {
+  fill: var(--border-color-strong);
+}
+
+// A link's word, on its line.
+.stage--link-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-control);
+  background: var(--surface-zone);
+  color: var(--text-color-muted);
+  font-size: var(--font-size-1);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+// A port's grip (`linkable`): over its connector, to draw a link from, and
+// seen through — what it lights is the connector, under the elements, ringed:
+// the element hides the half of the ring it stands on. While a link is drawn,
+// the ports it may end on are ringed.
+.stage--port {
+  position: absolute;
+  // Over the items, whose edges the ports stand on.
+  z-index: 2;
+  width: calc(var(--stage-connector-radius) * 2 + 6px);
+  height: calc(var(--stage-connector-radius) * 2 + 6px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  cursor: crosshair;
+}
+
+.stage--connector.is-lit {
+  stroke: var(--color-selected);
+  stroke-width: 6px;
+}
+
+// Under each port, a ring the size of its connector, out of sight; grown a
+// fifth wider for the port a link is drawn from and the one it would end on,
+// dark within, the link drawn passing under it.
+.stage--connector-ring {
+  r: var(--stage-connector-radius);
+  fill: var(--surface-page);
+  stroke: var(--color-selected);
+  stroke-width: 6px;
+  opacity: 0;
+  transition: r 160ms ease-out, opacity 160ms ease-out;
+
+  &.is-grown {
+    r: calc(var(--stage-connector-radius) * 1.2);
+    opacity: 1;
+  }
+}
+
+// The link being drawn: dashed, until it is dropped on a port.
+.stage--link--draft {
+  stroke: var(--color-selected);
+  stroke-dasharray: 6 4;
+}
+
+// What the page lays on a link (`link` slot), centred on its point: under the
+// elements, as the link it marks.
+.stage--link-handle {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+
+// Lit and dimmed with the items (`highlighted`).
+.stage--link,
+.stage--link-label,
+.stage--link-handle {
+  @include transition.colors(1);
+}
+
+.stage--link.is-highlighted {
+  stroke: var(--color-selected);
+  stroke-width: 3;
+}
+
+// The kinds of line a page may give a link (`kind`): one that holds under a
+// condition, dashed; one that is taken when no other is, heavier.
+.stage--link--dashed {
+  stroke-dasharray: 6 4;
+}
+
+.stage--link--strong {
+  stroke-width: 2.5;
+}

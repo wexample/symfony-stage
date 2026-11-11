@@ -1,0 +1,78 @@
+{%- extends '@WexampleSymfonyDesignSystemBundle/components/_abstract/vue/vue.vue.twig' -%}
+
+{#- Laid in a stage's `layers` slot: the links under the items, in the same
+    coordinates; their words and the page's handles over the links; the ports'
+    grips over the items. -#}
+{%- block vue_body -%}
+    <div class="stage-links">
+        <svg class="stage--links" aria-hidden="true">
+            <defs>
+                <marker :id="markerId" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+                    <path d="M 0 0 L 10 5 L 0 10 z" class="stage--arrow"></path>
+                </marker>
+            </defs>
+            <path v-for="link in drawnLinks"
+                  :key="link.id"
+                  class="stage--link"
+                  :class="[link.kind ? 'stage--link--' + link.kind : null, lightClass(link.id), { 'is-selected': isLinkSelected(link) }]"
+                  :d="linkPath(link)"
+                  :marker-end="arrows ? 'url(#' + markerId + ')' : null"></path>
+            {#- The link being drawn, from its port to the pointer; under the
+                connectors, a ring for each port, grown for the one it leaves
+                and the one it would end on. -#}
+            <path v-if="draft" class="stage--link stage--link--draft" :d="draftPath()"></path>
+            <template v-if="connectors && linkable && !readonly">
+                <circle v-for="port in drawnPorts"
+                        :key="port.key + '-ring'"
+                        class="stage--connector-ring"
+                        :class="{ 'is-grown': isPortGrown(port) }"
+                        :cx="port.x" :cy="port.y"></circle>
+            </template>
+            <template v-if="connectors">
+                <circle v-for="port in drawnPorts"
+                        :key="port.key"
+                        class="stage--connector"
+                        :class="[lightClass(port.id), { 'is-selected': stage.selection.includes(port.id), 'is-lit': isPortLit(port) }]"
+                        :cx="port.x" :cy="port.y"></circle>
+                <template v-for="link in drawnLinks" :key="link.id + '-ends'">
+                    <circle v-for="(end, index) in linkEnds(link)"
+                            :key="index"
+                            class="stage--connector"
+                            :class="[lightClass(link.id), { 'is-selected': isLinkSelected(link) }]"
+                            :cx="end.x" :cy="end.y"></circle>
+                </template>
+            </template>
+        </svg>
+
+        <span v-for="link in drawnLinks.filter((link) => link.label)"
+              :key="link.id + '-label'"
+              class="stage--link-label"
+              :class="lightClass(link.id)"
+              :style="{ left: linkLabelPoint(link).x + 'px', top: linkLabelPoint(link).y + 'px' }">[[ link.label ]]</span>
+
+        <template v-if="$slots.link">
+            <div v-for="link in handledLinks"
+                 :key="link.id + '-handle'"
+                 class="stage--link-handle"
+                 :class="lightClass(link.id)"
+                 :style="{ left: linkHandlePoint(link).x + 'px', top: linkHandlePoint(link).y + 'px' }"
+                 data-stage-no-drag>
+                <slot name="link" :link="link"></slot>
+            </div>
+        </template>
+
+        {#- What a link is drawn from and dropped on: a grip over each port's
+            connector, over the items. -#}
+        <template v-if="linkable && !readonly">
+            <span v-for="port in drawnPorts"
+                  :key="port.key + '-grip'"
+                  class="stage--port"
+                  :class="'stage--port--' + port.side"
+                  :style="{ left: port.x + 'px', top: port.y + 'px' }"
+                  :data-stage-port="port.key"
+                  @pointerdown="onPortDown($event, port)"
+                  @pointerenter="litPort = port.key"
+                  @pointerleave="litPort = null"></span>
+        </template>
+    </div>
+{%- endblock -%}
