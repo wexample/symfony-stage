@@ -8,7 +8,7 @@
 {%- block vue_body -%}
     <div ref="root"
          class="stage"
-         :class="{ 'stage--readonly': readonly, 'stage--grid': grid > 0, 'is-panning': gesture && gesture.type === 'pan' && gesture.moved }"
+         :class="{ 'stage--readonly': readonly, 'stage--grid': grid > 0, 'stage--scrollable': scrollable, 'is-panning': !scrollable && gesture && gesture.type === 'pan' && gesture.moved }"
          :style="stageStyle"
          :tabindex="readonly ? null : 0"
          role="application"
@@ -16,6 +16,9 @@
          @pointerdown="onPointerDown"
          @dblclick="onDoubleClick"
          @wheel="onWheel">
+        {#- Scrollable: what the scrollbars span. -#}
+        <div v-if="scrollable" class="stage--extent" :style="extentStyle"></div>
+
         <div class="stage--world" :style="worldStyle">
             {#- What the page lays on the surface besides its items — links,
                 regions, ribbons —, each layer told where the items stand

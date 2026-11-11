@@ -36,6 +36,21 @@
   background-size: var(--stage-grid) var(--stage-grid);
 }
 
+// Scrollable: the page's own scrollbars move it, its grid scrolling along.
+.stage--scrollable {
+  overflow: auto;
+  cursor: default;
+  touch-action: auto;
+  background-attachment: local;
+}
+
+.stage--extent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
 .stage--world {
   position: absolute;
   top: 0;

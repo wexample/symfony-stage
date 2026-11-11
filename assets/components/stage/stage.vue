@@ -46,7 +46,10 @@ const ZOOM_STEP = 1.2;
 // nor scrolls under them.
 //
 // `axis: 'x'` keeps the surface on its line, as a timeline is: it moves
-// sideways only. `bounded` stops it where what it holds does. `highlighted`
+// sideways only. `bounded` stops it where what it holds does, `inset` pixels
+// from the edges. `scrollable` leaves the moving to the page's own scrollbars:
+// the stage as large as what it holds, the surface not dragged, the wheel
+// the browser's. `highlighted`
 // lights some ids and dims the rest, items and what the layers draw alike.
 //
 // Read only, the stage takes no focus: its keys all change what it holds.
@@ -130,6 +133,16 @@ export default {
       type: Boolean,
       default: false
     },
+    // The room kept between what the stage holds and its edges, bounded or
+    // scrollable.
+    inset: {
+      type: Number,
+      default: 0
+    },
+    scrollable: {
+      type: Boolean,
+      default: false
+    },
     label: {
       type: String,
       default: ''
@@ -145,6 +158,8 @@ export default {
       // What the layers hand the stage: their state, what they hold.
       layers: [],
       pan: { x: 0, y: 0 },
+      // How far the stage scrolls, when scrollable: what it holds, and its inset.
+      extent: { width: 0, height: 0 },
       // The surface's scale: 1 draws it at its size.
       zoom: 1,
       gesture: null,
@@ -155,6 +170,10 @@ export default {
   },
 
   computed: {
+    extentStyle() {
+      return { width: `${this.extent.width}px`, height: `${this.extent.height}px` };
+    },
+
     worldStyle() {
       return { transform: `translate(${this.pan.x}px, ${this.pan.y}px) scale(${this.zoom})` };
     },
@@ -205,7 +224,7 @@ export default {
     // Bounded: held within what it holds from the first frame — not only
     // once moved —, and again whenever what it holds is laid or measured anew.
     placed() {
-      if (this.bounded && !this.gesture) {
+      if ((this.bounded || this.scrollable) && !this.gesture) {
         this.$nextTick(() => {
           this.pan = this.clampPan(this.pan);
         });
@@ -243,7 +262,7 @@ export default {
 
     this.observeItems();
 
-    if (this.bounded) {
+    if (this.bounded || this.scrollable) {
       this.$nextTick(() => {
         this.pan = this.clampPan(this.pan);
       });
@@ -404,8 +423,8 @@ export default {
       const rect = this.$refs.root.getBoundingClientRect();
 
       return {
-        x: (event.clientX - rect.left - this.pan.x) / this.zoom,
-        y: (event.clientY - rect.top - this.pan.y) / this.zoom
+        x: (event.clientX - rect.left + this.$refs.root.scrollLeft - this.pan.x) / this.zoom,
+        y: (event.clientY - rect.top + this.$refs.root.scrollTop - this.pan.y) / this.zoom
       };
     },
 
@@ -517,6 +536,11 @@ export default {
       gesture.moved = true;
 
       if (gesture.type === 'pan') {
+        // Scrollable: the scrollbars move it, not the pointer.
+        if (this.scrollable) {
+          return;
+        }
+
         this.pan = this.clampPan({ x: gesture.origin.x + dx, y: this.axis === 'x' ? 0 : gesture.origin.y + dy });
       } else if (gesture.type === 'move') {
         // The pointer travels on the screen, the elements on the surface.
@@ -572,8 +596,15 @@ export default {
         return;
       }
 
+      const zooming = this.zoomable && (event.ctrlKey || event.metaKey);
+
+      // Scrollable: the browser scrolls it.
+      if (this.scrollable && !zooming) {
+        return;
+      }
+
       // Ctrl (⌘) and the wheel scale the surface about the pointer.
-      if (this.zoomable && (event.ctrlKey || event.metaKey)) {
+      if (zooming) {
         event.preventDefault();
 
         const rect = this.$refs.root.getBoundingClientRect();
@@ -615,10 +646,11 @@ export default {
 
     // Within what the stage holds, when bounded — its items, and what its
     // layers hold: regions, the routes of links —: a surface smaller than the
-    // stage stays at its start.
+    // stage stays at its start. Scrollable, it stays at its start, the stage
+    // made as large as it to be scrolled.
     clampPan(pan) {
       const boxes = this.layers.flatMap((layer) => layer.boxes?.() ?? []);
-      const bounds = this.bounded
+      const bounds = this.bounded || this.scrollable
         ? stageGeometryBounds([...this.placed, ...boxes].map((box) => ({ ...box, height: box.height || 0 })))
         : null;
 
@@ -626,8 +658,19 @@ export default {
         return pan;
       }
 
+      const inset = this.inset;
+
+      if (this.scrollable) {
+        this.extent = {
+          width: Math.ceil(bounds.width * this.zoom + 2 * inset),
+          height: Math.ceil(bounds.height * this.zoom + 2 * inset)
+        };
+
+        return { x: inset - bounds.x * this.zoom, y: inset - bounds.y * this.zoom };
+      }
+
       // On the screen: the surface's bounds as scaled.
-      const clamp = (value, start, size, view) => Math.min(-start * this.zoom, Math.max(view - (start + size) * this.zoom, value));
+      const clamp = (value, start, size, view) => Math.min(inset - start * this.zoom, Math.max(view - inset - (start + size) * this.zoom, value));
 
       return {
         x: clamp(pan.x, bounds.x, bounds.width, this.$refs.root.clientWidth),
@@ -792,6 +835,16 @@ export default {
       const root = this.$refs.root;
 
       if (!item || !root) {
+        return;
+      }
+
+      if (this.scrollable) {
+        root.scrollTo({
+          left: this.pan.x + (item.x + (item.width || 0) / 2) * this.zoom - root.clientWidth / 2,
+          top: this.pan.y + (item.y + (item.height || 0) / 2) * this.zoom - root.clientHeight / 2,
+          behavior: 'smooth'
+        });
+
         return;
       }
 
