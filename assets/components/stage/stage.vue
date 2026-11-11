@@ -202,6 +202,16 @@ export default {
   },
 
   watch: {
+    // Bounded: held within what it holds from the first frame — not only
+    // once moved —, and again whenever what it holds is laid or measured anew.
+    placed() {
+      if (this.bounded && !this.gesture) {
+        this.$nextTick(() => {
+          this.pan = this.clampPan(this.pan);
+        });
+      }
+    },
+
     // Changed by the page — loaded, reset —, not by a gesture under way.
     elements(value) {
       if (!this.gesture) {
@@ -232,6 +242,12 @@ export default {
     });
 
     this.observeItems();
+
+    if (this.bounded) {
+      this.$nextTick(() => {
+        this.pan = this.clampPan(this.pan);
+      });
+    }
 
     ['Delete', 'Backspace'].forEach((key) => on(key, () => this.removeSelected()));
     on('Escape', () => this.select([]));
