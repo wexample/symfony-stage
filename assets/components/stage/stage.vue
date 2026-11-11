@@ -41,6 +41,11 @@ const ZOOM_STEP = 1.2;
 // measures each item, and lays them again whenever one grows — an item opened
 // in place pushes the others. Under a layout, an item is not dragged.
 //
+// An item's ports — where a link meets it (`ports`, `[{ id, side, y? }]`,
+// stage-links) — stand where the item says (`y`), or where its markup marks
+// them (`data-stage-port="side:id"` on the row of each): the stage measures
+// those as it does the item, and again whenever the item is drawn anew.
+//
 // An item keeps its own gestures — a list scrolling, a 3D view turning —
 // where its markup says so (`data-stage-no-drag`): the surface neither moves
 // nor scrolls under them.
@@ -155,6 +160,9 @@ export default {
       selection: [],
       // The size each item takes, as measured, by its id.
       sizes: {},
+      // Where the ports of each item stand in it, as measured on its markup
+      // (`data-stage-port`): by item id, then `side:port`.
+      anchors: {},
       // The items drawn where they stand at least once, by id: only from
       // then on is a move of theirs a move to be seen — an item laid where
       // its measure puts it appears there, it does not travel there.
@@ -211,7 +219,9 @@ export default {
       return this.items.map((item) => {
         const at = laid?.get(item.id);
 
-        return { ...item, ...(at ? { x: at.x, y: at.y } : {}), height: item.height || this.sizes[item.id]?.height || 0 };
+        const height = item.height || this.sizes[item.id]?.height || 0;
+
+        return { ...item, ...(at ? { x: at.x, y: at.y } : {}), height, ports: this.portsOf(item, height) };
       });
     },
 
@@ -253,6 +263,7 @@ export default {
         this.items = this.copy(value);
         this.dropMissingFromSelection();
         this.settled = Object.fromEntries(Object.keys(this.settled).filter((id) => this.items.some((item) => item.id === id)).map((id) => [id, true]));
+        this.anchors = Object.fromEntries(Object.entries(this.anchors).filter(([id]) => this.items.some((item) => item.id === id)));
       }
     }
   },
@@ -261,6 +272,13 @@ export default {
     this.history = new StageHistory();
     // Each item measured as it is drawn and whenever it changes size.
     this.sizeObserver = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver((entries) => this.onResize(entries));
+    // What is drawn again inside an item — a tab picked, a row added — moves
+    // its ports without changing its size: read again, once per frame.
+    this.portsObserver = typeof MutationObserver === 'undefined' ? null : new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => (mutation.target.nodeType === Node.ELEMENT_NODE ? mutation.target : mutation.target.parentElement)?.closest('[data-stage-element]'))) {
+        this.measurePortsSoon();
+      }
+    });
   },
 
   mounted() {
@@ -278,6 +296,7 @@ export default {
     });
 
     this.observeItems();
+    this.portsObserver?.observe(this.$refs.root, { childList: true, subtree: true, characterData: true });
 
     if (this.bounded || this.scrollable) {
       this.$nextTick(() => {
@@ -304,6 +323,8 @@ export default {
   beforeUnmount() {
     this.app.services.keyboard.unregisterOwner(this);
     this.sizeObserver?.disconnect();
+    this.portsObserver?.disconnect();
+    cancelAnimationFrame(this.portsFrame);
     this.endGesture();
   },
 
@@ -410,6 +431,63 @@ export default {
       if (changed) {
         this.sizes = sizes;
       }
+
+      // Measured along with its size: its rows stand where they will.
+      this.measurePorts(entries.map((entry) => entry.target));
+    },
+
+    measurePortsSoon() {
+      cancelAnimationFrame(this.portsFrame);
+      this.portsFrame = requestAnimationFrame(() => this.measurePorts([...(this.$refs.root?.querySelectorAll('[data-stage-element]') ?? [])]));
+    },
+
+    // Where the ports of these items stand in them, read on their markup: the
+    // middle of each row marked `data-stage-port="side:id"`, from the item's
+    // top, on the surface's scale. A row gone — a tab folded over it — keeps
+    // the place it had, so the links meet the item where they did. Written
+    // only when a row moved: what is written is drawn again, and read again.
+    measurePorts(elements) {
+      const anchors = { ...this.anchors };
+      let changed = false;
+
+      elements.forEach((el) => {
+        const id = el.dataset?.stageElement;
+        const rows = el.querySelectorAll?.('[data-stage-port]') ?? [];
+
+        if (!id || !rows.length) {
+          return;
+        }
+
+        const top = el.getBoundingClientRect().top;
+        const known = anchors[id] ?? {};
+        const found = {};
+
+        rows.forEach((row) => {
+          const box = row.getBoundingClientRect();
+          found[row.dataset.stagePort] = Math.round((box.top - top + box.height / 2) / this.zoom);
+        });
+
+        if (Object.entries(found).some(([key, y]) => known[key] !== y)) {
+          anchors[id] = { ...known, ...found };
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        this.anchors = anchors;
+      }
+    },
+
+    // An item's ports, each where it stands: the `y` it says, else the row
+    // marked for it in its markup, as measured — else the middle of its edge.
+    portsOf(item, height) {
+      if (!item.ports?.length) {
+        return item.ports;
+      }
+
+      const anchors = this.anchors[item.id] ?? {};
+
+      return item.ports.map((port) => ({ ...port, y: port.y ?? anchors[`${port.side}:${port.id}`] ?? height / 2 }));
     },
 
     // --- What the layers ask of the stage.

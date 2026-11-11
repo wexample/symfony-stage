@@ -24,9 +24,10 @@ const HANDLE_ROOM = 64;
 // `{ id, from, to }`, kept with the items in the stage's history, taken off
 // with the items they join.
 //
-// An item may declare its ports (`ports`, `[{ id, side, y }]`): where, down
+// An item may declare its ports (`ports`, `[{ id, side, y? }]`): where, down
 // its left edge (`side: 'in'`) or its right one (`side: 'out'`), a link meets
-// it. A link names the ports it joins (`fromPort`, `toPort`); one naming none
+// it — `y` said by the item, or measured by the stage where the item's markup
+// marks the port (`data-stage-port="side:id"`). A link names the ports it joins (`fromPort`, `toPort`); one naming none
 // meets the middle of the edge. A link may carry its own route (`points`,
 // `[[x, y], …]`), a `label` drawn on it and a `kind` the page styles it by
 // (`stage--link--<kind>`). Halfway along each link long enough
@@ -296,11 +297,11 @@ export default {
         type: 'layer',
         onMove: (moveEvent) => {
           this.draft = { ...this.draft, ...this.stage.toWorld(moveEvent) };
-          this.draftTarget = this.portTarget(port, document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('[data-stage-port]'))?.key ?? null;
+          this.draftTarget = this.portTarget(port, document.elementFromPoint(moveEvent.clientX, moveEvent.clientY)?.closest('[data-stage-grip]'))?.key ?? null;
         },
         onUp: (upEvent, gesture) => {
           const under = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
-          const targetEl = under?.closest('[data-stage-port]');
+          const targetEl = under?.closest('[data-stage-grip]');
 
           if (targetEl) {
             this.connectTo(port, targetEl);
@@ -328,7 +329,7 @@ export default {
     },
 
     portTarget(port, targetEl) {
-      const target = targetEl && this.drawnPorts.find((candidate) => candidate.key === targetEl.dataset.stagePort);
+      const target = targetEl && this.drawnPorts.find((candidate) => candidate.key === targetEl.dataset.stageGrip);
 
       return target && target.side !== port.side && target.id !== port.id ? target : null;
     },

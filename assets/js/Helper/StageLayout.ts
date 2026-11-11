@@ -3,7 +3,7 @@
 // place. Handed to the stage (`layout`), which measures its items and calls it
 // again whenever one changes size.
 
-export type StageLayoutItem = { id: string; width: number; height: number };
+export type StageLayoutItem = { id: string; width: number; height: number; column?: number };
 export type StageLayoutLink = { from: string; to: string };
 export type StageLayoutPlace = { x: number; y: number };
 export type StageLayout = (items: StageLayoutItem[]) => Map<string, StageLayoutPlace>;
@@ -18,6 +18,86 @@ export type StageLayoutFlowOptions = {
   originX?: number;
   originY?: number;
 };
+
+/**
+ * How deep each item stands in a flow: one fed by none at 0, any other one
+ * past the deepest item feeding it; a loop cut where it closes. What the
+ * layouts below read the columns from, and a page may too (the column a
+ * step's elements go under).
+ */
+export function stageLayoutDepths(items: { id: string }[], links: StageLayoutLink[]): Map<string, number> {
+  const ids = new Set(items.map((item) => item.id));
+  const feeders = new Map<string, string[]>(items.map((item) => [item.id, []]));
+
+  links
+    .filter((link) => ids.has(link.from) && ids.has(link.to) && link.from !== link.to)
+    .forEach((link) => feeders.get(link.to)!.push(link.from));
+
+  const depth = new Map<string, number>();
+  const visiting = new Set<string>();
+  const depthOf = (id: string): number => {
+    if (depth.has(id)) {
+      return depth.get(id)!;
+    }
+
+    if (visiting.has(id)) {
+      return 0;
+    }
+
+    visiting.add(id);
+    const value = feeders.get(id)!.reduce((deepest, feeder) => Math.max(deepest, depthOf(feeder) + 1), 0);
+    visiting.delete(id);
+    depth.set(id, value);
+
+    return value;
+  };
+  items.forEach((item) => depthOf(item.id));
+
+  return depth;
+}
+
+export type StageLayoutColumnsOptions = StageLayoutFlowOptions & {
+  // What the page adds after the flow — a block asking for the next step —:
+  // in a column of its own, after the last.
+  trailing?: string[];
+};
+
+/**
+ * A flow read from left to right as columns: each item in the column of its
+ * depth — or the one it says (`column`) —, the items of a column one under
+ * the other in the order given, each column as wide as its widest. Where the
+ * flow layout keeps a branch on a row of its own across the columns, this
+ * stacks it under what shares its column: tighter when the items differ in
+ * height, and the way a column of a step's elements is read.
+ */
+export function stageLayoutColumns({ links, gapX = 64, gapY = 24, originX = 0, originY = 0, trailing = [] }: StageLayoutColumnsOptions): StageLayout {
+  return (items) => {
+    const after = new Set(trailing);
+    const depths = stageLayoutDepths(items.filter((item) => !after.has(item.id)), links);
+    const columnOf = new Map<string, number>(items.filter((item) => !after.has(item.id)).map((item) => [item.id, item.column ?? depths.get(item.id) ?? 0]));
+    const last = Math.max(-1, ...columnOf.values());
+    items.filter((item) => after.has(item.id)).forEach((item) => columnOf.set(item.id, last + 1));
+
+    const widths: number[] = [];
+    items.forEach((item) => {
+      const column = columnOf.get(item.id)!;
+      widths[column] = Math.max(widths[column] ?? 0, item.width);
+    });
+
+    const bottoms: number[] = [];
+
+    return new Map(items.map((item) => {
+      const column = columnOf.get(item.id)!;
+      const y = bottoms[column] ?? originY;
+      bottoms[column] = y + item.height + gapY;
+
+      return [item.id, {
+        x: originX + widths.slice(0, column).reduce((sum, width) => sum + (width ?? 0) + gapX, 0),
+        y
+      }];
+    }));
+  };
+}
 
 /**
  * A flow with branches and no loop, read from left to right: each step in the
@@ -44,26 +124,7 @@ export function stageLayoutFlow({ links, gapX = 64, gapY = 48, originX = 0, orig
       feeders.get(link.to)!.push(link.from);
     });
 
-    // Depth: one past the deepest feeder, a loop cut where it closes.
-    const depth = new Map<string, number>();
-    const visiting = new Set<string>();
-    const depthOf = (id: string): number => {
-      if (depth.has(id)) {
-        return depth.get(id)!;
-      }
-
-      if (visiting.has(id)) {
-        return 0;
-      }
-
-      visiting.add(id);
-      const value = feeders.get(id)!.reduce((deepest, feeder) => Math.max(deepest, depthOf(feeder) + 1), 0);
-      visiting.delete(id);
-      depth.set(id, value);
-
-      return value;
-    };
-    items.forEach((item) => depthOf(item.id));
+    const depth = stageLayoutDepths(items, kept);
 
     // Rows: walked from the roots in the order given, a step's first follower
     // on its row, any other on the next free row.

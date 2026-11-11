@@ -3,7 +3,7 @@
 // largest step.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { stageLayoutFlow } from '../../assets/js/Helper/StageLayout.ts';
+import { stageLayoutColumns, stageLayoutDepths, stageLayoutFlow } from '../../assets/js/Helper/StageLayout.ts';
 
 const box = (id: string, width = 100, height = 40) => ({ id, width, height });
 
@@ -37,4 +37,28 @@ test('a step fed by two lands one past the deepest; a loop is cut, not followed'
 
   const looped = stageLayoutFlow({ links: [{ from: 'a', to: 'b' }, { from: 'b', to: 'a' }], gapX: 0, gapY: 0 })([box('a'), box('b')]);
   assert.equal(looped.size, 2);
+});
+
+test('depths: a root at 0, each other one past its deepest feeder', () => {
+  const depths = stageLayoutDepths([box('a'), box('b'), box('c'), box('d')], [{ from: 'a', to: 'b' }, { from: 'b', to: 'c' }, { from: 'a', to: 'c' }]);
+
+  assert.deepEqual([...depths], [['a', 0], ['b', 1], ['c', 2], ['d', 0]]);
+});
+
+test('columns: a branch stacked under what shares its column, each column as wide as its widest', () => {
+  const layout = stageLayoutColumns({ links: [{ from: 'a', to: 'b' }, { from: 'a', to: 'c' }], gapX: 20, gapY: 10 });
+  const places = layout([box('a'), box('b', 100, 30), box('c', 140)]);
+
+  assert.deepEqual(places.get('a'), { x: 0, y: 0 });
+  assert.deepEqual(places.get('b'), { x: 120, y: 0 });
+  // Under its sibling, not on a row of its own.
+  assert.deepEqual(places.get('c'), { x: 120, y: 40 });
+});
+
+test('columns: an item saying its column stands there; a trailing one in a column after the last', () => {
+  const layout = stageLayoutColumns({ links: [{ from: 'a', to: 'b' }], gapX: 20, gapY: 10, trailing: ['add'] });
+  const places = layout([box('a'), box('b'), { ...box('x'), column: 1 }, box('add', 50)]);
+
+  assert.deepEqual(places.get('x'), { x: 120, y: 50 });
+  assert.deepEqual(places.get('add'), { x: 240, y: 0 });
 });

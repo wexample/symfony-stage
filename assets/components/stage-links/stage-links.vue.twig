@@ -85,7 +85,7 @@
                   class="stage--port"
                   :class="'stage--port--' + port.side"
                   :style="{ left: port.x + 'px', top: port.y + 'px' }"
-                  :data-stage-port="port.key"
+                  :data-stage-grip="port.key"
                   @pointerdown="onPortDown($event, port)"
                   @pointerenter="litPort = port.key"
                   @pointerleave="litPort = null"></span>
