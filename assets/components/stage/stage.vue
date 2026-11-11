@@ -155,6 +155,10 @@ export default {
       selection: [],
       // The size each item takes, as measured, by its id.
       sizes: {},
+      // The items drawn where they stand at least once, by id: only from
+      // then on is a move of theirs a move to be seen — an item laid where
+      // its measure puts it appears there, it does not travel there.
+      settled: {},
       // What the layers hand the stage: their state, what they hold.
       layers: [],
       pan: { x: 0, y: 0 },
@@ -223,10 +227,22 @@ export default {
   watch: {
     // Bounded: held within what it holds from the first frame — not only
     // once moved —, and again whenever what it holds is laid or measured anew.
+    // An item placed for the first time is settled once that frame is
+    // painted: the frame after, so its first standing is never a move.
     placed() {
       if ((this.bounded || this.scrollable) && !this.gesture) {
         this.$nextTick(() => {
           this.pan = this.clampPan(this.pan);
+        });
+      }
+
+      const arriving = this.placed.filter((item) => this.isPlaced(item) && !this.settled[item.id]).map((item) => item.id);
+
+      if (arriving.length) {
+        this.$nextTick(() => {
+          requestAnimationFrame(() => {
+            this.settled = { ...this.settled, ...Object.fromEntries(arriving.map((id) => [id, true])) };
+          });
         });
       }
     },
@@ -236,6 +252,7 @@ export default {
       if (!this.gesture) {
         this.items = this.copy(value);
         this.dropMissingFromSelection();
+        this.settled = Object.fromEntries(Object.keys(this.settled).filter((id) => this.items.some((item) => item.id === id)).map((id) => [id, true]));
       }
     }
   },
@@ -334,6 +351,19 @@ export default {
 
     boxOf(item) {
       return { ...item, height: item.height || 0 };
+    },
+
+    // Whether an item stands where it will: where its own place puts it, or
+    // — under a layout, which lays it by its size — once that size is known.
+    // Until then it is drawn to be measured, not to be seen.
+    isPlaced(item) {
+      if (!this.layout) {
+        return true;
+      }
+
+      const { width, height } = this.sizeOf(item);
+
+      return width > 0 && height > 0;
     },
 
     // What a layout is told of an item: the size it takes, its own when it

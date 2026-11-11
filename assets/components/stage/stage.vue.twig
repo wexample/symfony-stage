@@ -29,7 +29,7 @@
             <div v-for="item in placed"
                  :key="item.id"
                  class="stage--element"
-                 :class="[item.kind ? 'stage--element--' + item.kind : null, lightClass(item.id), { 'is-selected': isSelected(item), 'is-laid': layout }]"
+                 :class="[item.kind ? 'stage--element--' + item.kind : null, lightClass(item.id), { 'is-selected': isSelected(item), 'is-unplaced': !isPlaced(item), 'is-laid': layout && settled[item.id] }]"
                  :style="elementStyle(item)"
                  :data-stage-element="item.id">
                 <slot name="element" :element="item" :selected="isSelected(item)">

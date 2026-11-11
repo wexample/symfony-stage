@@ -107,7 +107,15 @@
   box-shadow: 0 0 0 3px var(--color-selected);
 }
 
-// Laid by a layout: moved to where it is laid again, rather than jumping.
+// Not yet where it will stand — drawn to be measured, under a layout that
+// waits for its size —: there, taking its room, and not seen. Everything
+// appears at once where it is laid, nothing is seen travelling there.
+.stage--element.is-unplaced {
+  visibility: hidden;
+}
+
+// Laid by a layout and seen standing once: moved to where it is laid again,
+// rather than jumping.
 .stage--element.is-laid {
   transition: left 200ms ease-out, top 200ms ease-out;
 
