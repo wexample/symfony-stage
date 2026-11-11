@@ -56,6 +56,13 @@ export function stageLayoutDepths(items: { id: string }[], links: StageLayoutLin
   return depth;
 }
 
+export type StageLayoutRowsOptions = StageLayoutFlowOptions & {
+  // A row stands right under what is above it in the columns it runs
+  // through, not under the tallest step of the row above: a step opened tall
+  // in one column leaves the branches of the other columns where they were.
+  compact?: boolean;
+};
+
 export type StageLayoutColumnsOptions = StageLayoutFlowOptions & {
   // What the page adds after the flow — a block asking for the next step —:
   // in a column of its own, after the last.
@@ -106,9 +113,11 @@ export function stageLayoutColumns({ links, gapX = 64, gapY = 24, originX = 0, o
  * a row of its own under the rows already taken, hooked to the step it
  * leaves. Columns as wide as their widest step, rows as tall as their tallest:
  * a step opened in place pushes the columns after it and the rows under it.
+ * `compact`: a row stands under what is above it in its own columns only —
+ * from its first step to its last —, each step of a row still on one line.
  * A loop, were there one, is cut where it closes.
  */
-export function stageLayoutFlow({ links, gapX = 64, gapY = 48, originX = 0, originY = 0 }: StageLayoutFlowOptions): StageLayout {
+export function stageLayoutFlow({ links, gapX = 64, gapY = 48, originX = 0, originY = 0, compact = false }: StageLayoutRowsOptions): StageLayout {
   return (items) => {
     const ids = new Set(items.map((item) => item.id));
     const kept = links.filter((link) => ids.has(link.from) && ids.has(link.to) && link.from !== link.to);
@@ -158,9 +167,47 @@ export function stageLayoutFlow({ links, gapX = 64, gapY = 48, originX = 0, orig
     const start = (sizes: number[], index: number, gap: number, origin: number) =>
       origin + sizes.slice(0, index).reduce((sum, size) => sum + (size ?? 0) + gap, 0);
 
+    // Where each row starts. Compact: the rows laid in their order, each
+    // under the lowest of what its columns hold already — from its first
+    // step to its last, the columns its links cross between them counted as
+    // tall as its shortest step.
+    const tops: number[] = [];
+
+    if (compact) {
+      const bottoms: number[] = [];
+
+      heights.forEach((_, line) => {
+        const steps = items.filter((item) => row.get(item.id) === line);
+
+        if (!steps.length) {
+          return;
+        }
+
+        const columns = steps.map((item) => depth.get(item.id)!);
+        const first = Math.min(...columns);
+        const last = Math.max(...columns);
+        const shortest = Math.min(...steps.map((item) => item.height));
+        let top = originY;
+
+        for (let column = first; column <= last; column++) {
+          top = Math.max(top, bottoms[column] ?? originY);
+        }
+
+        tops[line] = top;
+
+        for (let column = first; column <= last; column++) {
+          bottoms[column] = top + shortest + gapY;
+        }
+
+        steps.forEach((item) => {
+          bottoms[depth.get(item.id)!] = top + item.height + gapY;
+        });
+      });
+    }
+
     return new Map(items.map((item) => [item.id, {
       x: start(widths, depth.get(item.id)!, gapX, originX),
-      y: start(heights, row.get(item.id)!, gapY, originY)
+      y: compact ? tops[row.get(item.id)!] : start(heights, row.get(item.id)!, gapY, originY)
     }]));
   };
 }

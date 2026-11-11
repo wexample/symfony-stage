@@ -31,6 +31,17 @@ test('a step opened in place pushes the columns after it and the rows under it',
   assert.deepEqual(places.get('c'), { x: 320, y: 210 });
 });
 
+test('compact: a branch stands under what its own columns hold, not under a tall step of another column', () => {
+  const links = [{ from: 'a', to: 'b' }, { from: 'b', to: 'c' }, { from: 'a', to: 'd' }, { from: 'a', to: 'e' }];
+  const places = stageLayoutFlow({ links, gapX: 20, gapY: 10, compact: true })([box('a', 100, 300), box('b'), box('c'), box('d', 100, 60), box('e')]);
+
+  // The trunk on one line, whatever its steps' heights.
+  assert.deepEqual([places.get('a')!.y, places.get('b')!.y, places.get('c')!.y], [0, 0, 0]);
+  // `d` under `b`, not under the 300 of `a`; `e` under `d`.
+  assert.deepEqual(places.get('d'), { x: 120, y: 50 });
+  assert.deepEqual(places.get('e'), { x: 120, y: 120 });
+});
+
 test('a step fed by two lands one past the deepest; a loop is cut, not followed', () => {
   const places = stageLayoutFlow({ links: [{ from: 'a', to: 'b' }, { from: 'b', to: 'c' }, { from: 'a', to: 'c' }], gapX: 0, gapY: 0 })([box('a'), box('b'), box('c')]);
   assert.equal(places.get('c')!.x, 200);
