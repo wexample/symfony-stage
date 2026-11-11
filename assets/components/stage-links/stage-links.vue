@@ -13,6 +13,8 @@ import {
 } from '../../js/Helper/StageGeometry';
 import { buildUniqueId } from '@wexample/js-helpers/Helper/Id';
 
+const T = 'WexampleSymfonyStageBundle.components.stage-links.stage-links::';
+
 // The links between the items of a stage — a layer laid on it (its `layers`
 // slot) —, drawn under the items in their coordinates: `v-model:links`, each
 // `{ id, from, to }`, kept with the items in the stage's history, taken off
@@ -23,8 +25,11 @@ import { buildUniqueId } from '@wexample/js-helpers/Helper/Id';
 // it. A link names the ports it joins (`fromPort`, `toPort`); one naming none
 // meets the middle of the edge. A link may carry its own route (`points`,
 // `[[x, y], …]`), a `label` drawn on it and a `kind` the page styles it by
-// (`stage--link--<kind>`). The `link` slot lays the page's markup on each
-// link, halfway along it: a handle, a button taking it off.
+// (`stage--link--<kind>`). Halfway along each link long enough
+// (`handleMinLength`), a handle: its middle marked, and `removable`, a button
+// there taking it off — the layer takes nothing off itself, it asks the page
+// (`remove`, the link). The `link` slot lays the page's own markup there
+// instead.
 //
 // `linkable`: a link drawn from one port to another — pressed on a way out
 // — or in —, dragged, dropped on a way in — or out — of another item. The
@@ -36,7 +41,7 @@ export default {
 
   inject: ['stage'],
 
-  emits: ['update:links', 'connect', 'connect-void'],
+  emits: ['update:links', 'connect', 'connect-void', 'remove'],
 
   props: {
     links: {
@@ -74,7 +79,12 @@ export default {
       type: Boolean,
       default: false
     },
-    // How long a link must be to hold the page's handle (`link` slot), in pixels.
+    // A button on each link's handle taking it off, to a page that may.
+    removable: {
+      type: Boolean,
+      default: false
+    },
+    // How long a link must be to hold its handle, in pixels.
     handleMinLength: {
       type: Number,
       default: 0
@@ -172,6 +182,23 @@ export default {
   methods: {
     copy(value) {
       return JSON.parse(JSON.stringify(value ?? []));
+    },
+
+    t(key) {
+      return this.trans(`${T}${key}`);
+    },
+
+    // Whether the links hold a handle: the page's, or the layer's own.
+    hasHandles() {
+      return Boolean(this.$slots.link) || this.canRemove();
+    },
+
+    canRemove() {
+      return this.removable && !this.readonly;
+    },
+
+    removeLink(link) {
+      this.$emit('remove', link);
     },
 
     lightClass(id) {

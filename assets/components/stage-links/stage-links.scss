@@ -1,6 +1,7 @@
 /* Component: stage-links */
 // The links of a stage, a layer of it: under its items, in their coordinates.
 @use '@wexample/symfony-design-system/css/mixins/transition';
+@use '@wexample/symfony-design-system/css/shapes/action-icon';
 
 .stage--links {
   position: absolute;
@@ -101,11 +102,51 @@
   stroke-dasharray: 6 4;
 }
 
-// What the page lays on a link (`link` slot), centred on its point: under the
-// elements, as the link it marks.
+// What stands on a link halfway along it, centred on its point: the page's
+// markup (`link` slot), or the layer's own handle — its dot, and over it the
+// button taking the link off, each in the same place, one shown at a time.
 .stage--link-handle {
   position: absolute;
+  display: grid;
+  place-items: center;
   transform: translate(-50%, -50%);
+
+  > * {
+    grid-area: 1 / 1;
+  }
+}
+
+// The link's middle: a dot as wide as its connectors, in its colour.
+.stage--link-dot {
+  pointer-events: none;
+  width: calc(var(--stage-connector-radius) * 2);
+  height: calc(var(--stage-connector-radius) * 2);
+  border-radius: 50%;
+  background: var(--border-color-strong);
+}
+
+// The button, on the stage's ground so the link does not run through it:
+// out of sight until the pointer comes to the handle, the dot going as it
+// shows; the error colour under the pointer, for what it is about to do.
+.stage--link-remove {
+  background: var(--surface-zone);
+  opacity: 0;
+
+  &:hover,
+  &:focus-visible {
+    color: var(--error-9);
+  }
+}
+
+.stage--link-handle--removable:hover,
+.stage--link-handle--removable:focus-within {
+  .stage--link-dot {
+    opacity: 0;
+  }
+
+  .stage--link-remove {
+    opacity: 1;
+  }
 }
 
 

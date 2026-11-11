@@ -3,6 +3,11 @@
 {#- Laid in a stage's `layers` slot: the links under the items, in the same
     coordinates; their words and the page's handles over the links; the ports'
     grips over the items. -#}
+{%- block vue_config -%}
+    {{ parent() }}
+    {{ trans_js(render_pass, 'WexampleSymfonyStageBundle.components.stage-links.stage-links::*') }}
+{%- endblock -%}
+
 {%- block vue_body -%}
     <div class="stage-links">
         <svg class="stage--links" aria-hidden="true">
@@ -50,14 +55,25 @@
               :class="lightClass(link.id)"
               :style="{ left: linkLabelPoint(link).x + 'px', top: linkLabelPoint(link).y + 'px' }">[[ link.label ]]</span>
 
-        <template v-if="$slots.link">
+        {#- Halfway along each link: the page's markup, or the layer's own
+            handle — its middle marked, a button there taking it off under
+            the pointer (`removable`). -#}
+        <template v-if="hasHandles()">
             <div v-for="link in handledLinks"
                  :key="link.id + '-handle'"
                  class="stage--link-handle"
-                 :class="lightClass(link.id)"
+                 :class="[lightClass(link.id), { 'stage--link-handle--removable': canRemove() }]"
                  :style="{ left: linkHandlePoint(link).x + 'px', top: linkHandlePoint(link).y + 'px' }"
                  data-stage-no-drag>
-                <slot name="link" :link="link"></slot>
+                <slot name="link" :link="link">
+                    <span class="stage--link-dot"></span>
+                    <button v-if="canRemove()"
+                            type="button"
+                            class="action-icon stage--link-remove"
+                            :aria-label="t('remove')"
+                            :data-tooltip="t('remove')"
+                            @click="removeLink(link)">{{ icon('ph:bold/trash') }}</button>
+                </slot>
             </div>
         </template>
 
