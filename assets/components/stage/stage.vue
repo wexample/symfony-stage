@@ -23,6 +23,8 @@ const NUDGE_FAR = 5;
 
 // How much a press of the zoom, or a notch of Ctrl and the wheel, scales.
 const ZOOM_STEP = 1.2;
+// How long the surface rests before where it stands is told back (`update:view`).
+const VIEW_SETTLE_DELAY_MS = 400;
 
 // A neutral surface: what it holds placed on it, moved — and scaled, when
 // `zoomable` —, picked, dragged, removed, every change undone and done again.
@@ -66,7 +68,7 @@ const ZOOM_STEP = 1.2;
 export default {
   template: '#vue-template-wexample-symfony-stage-bundle-components-stage-stage',
 
-  emits: ['update:elements', 'update:selection', 'remove', 'open', 'create'],
+  emits: ['update:elements', 'update:selection', 'update:view', 'remove', 'open', 'create'],
 
   // What the layers read and call: the stage itself — its placed items, its
   // pan and zoom, its gestures, its history.
@@ -125,6 +127,14 @@ export default {
     zoomable: {
       type: Boolean,
       default: false
+    },
+    // Where the surface stands — `{ x, y, zoom }`, its pan and its scale —,
+    // taken when given (`v-model:view`): a page keeps it, and opens the stage
+    // where it was left. Told back as the reader moves it, once settled.
+    // None, the stage stands where its page puts it.
+    view: {
+      type: Object,
+      default: null
     },
     zoomMin: {
       type: Number,
@@ -235,6 +245,20 @@ export default {
   },
 
   watch: {
+    // Given by the page: taken, unless it is where the surface stands.
+    view(view) {
+      this.applyView(view);
+    },
+
+    // Moved or scaled: told back once it rests.
+    pan() {
+      this.tellViewSoon();
+    },
+
+    zoom() {
+      this.tellViewSoon();
+    },
+
     // Bounded: held within what it holds from the first frame — not only
     // once moved —, and again whenever what it holds is laid or measured anew.
     // An item placed for the first time is settled once that frame is
@@ -297,6 +321,9 @@ export default {
       enabled: () => this.hasFocus()
     });
 
+    // Opened where the page left it, when it says.
+    this.applyView(this.view);
+
     this.observeItems();
     this.portsObserver?.observe(this.$refs.root, { childList: true, subtree: true, characterData: true });
 
@@ -323,6 +350,7 @@ export default {
   },
 
   beforeUnmount() {
+    clearTimeout(this.viewTimer);
     this.app.services.keyboard.unregisterOwner(this);
     this.sizeObserver?.disconnect();
     this.portsObserver?.disconnect();
@@ -918,6 +946,41 @@ export default {
       return item;
     },
 
+
+    // Whether the page gave a view: it opens the stage there, rather than
+    // where the page would otherwise put it.
+    hasView() {
+      return Boolean(this.view && Number.isFinite(this.view.x) && Number.isFinite(this.view.y));
+    },
+
+    // A view given taken: its scale within bounds, its pan as given.
+    applyView(view) {
+      if (!view || !Number.isFinite(view.x) || !Number.isFinite(view.y)) {
+        return;
+      }
+
+      const zoom = this.zoomable && Number.isFinite(view.zoom) ? Math.min(this.zoomMax, Math.max(this.zoomMin, view.zoom)) : this.zoom;
+
+      if (zoom === this.zoom && view.x === this.pan.x && view.y === this.pan.y) {
+        return;
+      }
+
+      this.zoom = zoom;
+      this.pan = { x: view.x, y: this.axis === 'x' ? 0 : view.y };
+    },
+
+    // The view told back once it has rested a moment: a pan is many moves,
+    // the page keeps the last.
+    tellViewSoon() {
+      clearTimeout(this.viewTimer);
+      this.viewTimer = setTimeout(() => {
+        if (this.view && this.view.x === this.pan.x && this.view.y === this.pan.y && this.view.zoom === this.zoom) {
+          return;
+        }
+
+        this.$emit('update:view', { x: this.pan.x, y: this.pan.y, zoom: this.zoom });
+      }, VIEW_SETTLE_DELAY_MS);
+    },
 
     // The surface moved so that what it holds stands in the middle of the
     // stage — on the line it moves along, with an `x` axis.

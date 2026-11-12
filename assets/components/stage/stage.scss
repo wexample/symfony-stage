@@ -123,3 +123,9 @@
     transition: none;
   }
 }
+
+// Laid edge to edge in a zone (`zone--content--flush`): its corners are the
+// zone's — square, unless the skin rounds the zones.
+.zone--content--flush .stage {
+  border-radius: var(--zone-radius, 0);
+}
